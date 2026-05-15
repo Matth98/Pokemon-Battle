@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, Plus, Trash2, Search, X, Edit2, Save } from 'lucide-react';
 
 const FRENCH_NAMES_MAP = {
-  'bulbasaur': 'Bulbizarre', 'charmander': 'Salamèche', 'squirtle': 'Carapuce',
-  'pikachu': 'Pikachu', 'venusaur': 'Florizarre', 'charizard': 'Dracaufeu',
-  'blastoise': 'Tortank', 'raichu': 'Raichu', 'arcanine': 'Arcanin',
+  'bulbasaur': 'Bulbizarre', 'ivysaur': 'Herbizarre', 'venusaur': 'Florizarre',
+  'charmander': 'Salamèche', 'charmeleon': 'Reptincel', 'charizard': 'Dracaufeu',
+  'squirtle': 'Carapuce', 'wartortle': 'Carabaffe', 'blastoise': 'Tortank',
+  'pikachu': 'Pikachu', 'raichu': 'Raichu', 'arcanine': 'Arcanin',
   'lapras': 'Lokhlass', 'gengar': 'Ectoplasma', 'dragonite': 'Dracolosse',
   'alakazam': 'Alakazam', 'machamp': 'Machamp', 'golem': 'Golem',
 };
@@ -17,7 +18,6 @@ const PokemonBattleLogger = () => {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [showNewPlayerForm, setShowNewPlayerForm] = useState(false);
   const [allPokemon, setAllPokemon] = useState([]);
-  const [loadingPokemon, setLoadingPokemon] = useState(true);
 
   // Charger les données du localStorage
   useEffect(() => {
@@ -31,7 +31,7 @@ const PokemonBattleLogger = () => {
     }
   }, []);
 
-  // Charger les Pokémon
+  // Charger les Pokémon une seule fois
   useEffect(() => {
     const loadPokemon = async () => {
       try {
@@ -42,29 +42,12 @@ const PokemonBattleLogger = () => {
           id: index + 1,
           name: FRENCH_NAMES_MAP[poke.name] || poke.name.charAt(0).toUpperCase() + poke.name.slice(1),
           pokeId: index + 1,
-          types: ['normal'],
+          types: [],
         }));
         
         setAllPokemon(list);
-        
-        // Charger détails en arrière-plan
-        for (let i = 0; i < list.length; i += 30) {
-          const batch = list.slice(i, i + 30);
-          await Promise.all(
-            batch.map(async (poke) => {
-              try {
-                const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${poke.id}`);
-                const data = await res.json();
-                const types = data.types.map(t => t.type.name);
-                setAllPokemon(prev => prev.map(p => p.id === poke.id ? {...p, types} : p));
-              } catch (e) {}
-            })
-          );
-        }
       } catch (error) {
-        console.error('Erreur:', error);
-      } finally {
-        setLoadingPokemon(false);
+        console.error('Erreur chargement Pokémon:', error);
       }
     };
 
@@ -73,16 +56,10 @@ const PokemonBattleLogger = () => {
 
   // Sauvegarder les données
   useEffect(() => {
-    localStorage.setItem('pokebattle_players', JSON.stringify(players));
+    if (players.length > 0) {
+      localStorage.setItem('pokebattle_players', JSON.stringify(players));
+    }
   }, [players]);
-
-  const pokemonTypes = {
-    normal: '#A8A878', fire: '#F08030', water: '#6890F0', electric: '#F8D030',
-    grass: '#78C850', ice: '#98D8D8', fighting: '#C03028', poison: '#A040A0',
-    ground: '#E0C068', flying: '#A890F0', psychic: '#F85888', bug: '#A8B820',
-    rock: '#B8A038', ghost: '#705898', dragon: '#7038F8', dark: '#705848',
-    steel: '#B8B8D0', fairy: '#EE99AC',
-  };
 
   const getPokemonImageUrl = (id) => {
     return `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
@@ -101,6 +78,9 @@ const PokemonBattleLogger = () => {
 
   const updatePlayer = (playerId, updates) => {
     setPlayers(players.map(p => p.id === playerId ? {...p, ...updates} : p));
+    if (selectedPlayer?.id === playerId) {
+      setSelectedPlayer({...selectedPlayer, ...updates});
+    }
   };
 
   const addPokemonToPlayer = (playerId, pokemon) => {
@@ -118,20 +98,37 @@ const PokemonBattleLogger = () => {
       item: 'Aucun',
       moves: ['Éclair', 'Tonnerre', 'Charge', 'Morsure'],
     };
-    updatePlayer(playerId, {
-      pokemon: [...(selectedPlayer?.pokemon || []), newPoke]
-    });
-    setSelectedPlayer({...selectedPlayer, pokemon: [...(selectedPlayer?.pokemon || []), newPoke]});
+    
+    const updatedPlayers = players.map(p => 
+      p.id === playerId 
+        ? {...p, pokemon: [...(p.pokemon || []), newPoke]}
+        : p
+    );
+    setPlayers(updatedPlayers);
+    setSelectedPlayer(updatedPlayers.find(p => p.id === playerId));
   };
 
   const deletePokemonFromPlayer = (playerId, pokemonId) => {
-    updatePlayer(playerId, {
-      pokemon: (selectedPlayer?.pokemon || []).filter(p => p.id !== pokemonId)
-    });
-    setSelectedPlayer({
-      ...selectedPlayer, 
-      pokemon: (selectedPlayer?.pokemon || []).filter(p => p.id !== pokemonId)
-    });
+    const updatedPlayers = players.map(p => 
+      p.id === playerId 
+        ? {...p, pokemon: (p.pokemon || []).filter(pk => pk.id !== pokemonId)}
+        : p
+    );
+    setPlayers(updatedPlayers);
+    setSelectedPlayer(updatedPlayers.find(p => p.id === playerId));
+  };
+
+  const updatePokemonInPlayer = (playerId, pokemonId, updates) => {
+    const updatedPlayers = players.map(p => 
+      p.id === playerId 
+        ? {
+            ...p, 
+            pokemon: (p.pokemon || []).map(pk => pk.id === pokemonId ? {...pk, ...updates} : pk)
+          }
+        : p
+    );
+    setPlayers(updatedPlayers);
+    setSelectedPlayer(updatedPlayers.find(p => p.id === playerId));
   };
 
   // HOME VIEW
@@ -267,7 +264,7 @@ const PokemonBattleLogger = () => {
             </div>
 
             <p className="text-center text-gray-600 mb-6">
-              Pokémon: <span className="font-bold">{selectedPlayer.pokemon.length}</span>
+              Pokémon: <span className="font-bold">{(selectedPlayer.pokemon || []).length}</span>
             </p>
           </div>
 
@@ -282,7 +279,7 @@ const PokemonBattleLogger = () => {
               </button>
             </h2>
 
-            {selectedPlayer.pokemon.length === 0 ? (
+            {(selectedPlayer.pokemon || []).length === 0 ? (
               <p className="text-gray-600 text-center py-8">Aucun Pokémon. Ajoutes-en un!</p>
             ) : (
               <div className="space-y-3">
@@ -333,7 +330,7 @@ const PokemonBattleLogger = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const filteredPokemon = allPokemon.filter(p => 
       p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 50);
+    ).slice(0, 100);
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-500 via-teal-400 to-blue-500 p-4">
@@ -362,39 +359,35 @@ const PokemonBattleLogger = () => {
             />
           </div>
 
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {filteredPokemon.map((poke) => (
-              <button
-                key={poke.id}
-                onClick={() => {
-                  addPokemonToPlayer(selectedPlayer.id, poke);
-                  setCurrentView('profile');
-                }}
-                className="w-full bg-white rounded-xl p-3 shadow-md hover:shadow-lg transition flex items-center gap-3 text-left"
-              >
-                <img
-                  src={getPokemonImageUrl(poke.pokeId)}
-                  alt={poke.name}
-                  className="w-12 h-12 object-contain"
-                  onError={(e) => { e.target.src = ''; }}
-                />
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-800">{poke.name}</h3>
-                  <div className="flex gap-1 flex-wrap">
-                    {poke.types?.map((type) => (
-                      <span
-                        key={type}
-                        style={{ backgroundColor: pokemonTypes[type] || '#A8A878' }}
-                        className="text-white text-xs font-bold px-2 py-1 rounded-full"
-                      >
-                        {type}
-                      </span>
-                    ))}
+          {filteredPokemon.length === 0 && searchTerm ? (
+            <div className="bg-white rounded-xl p-6 text-center">
+              <p className="text-gray-600">Aucun Pokémon trouvé</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {filteredPokemon.map((poke) => (
+                <button
+                  key={poke.id}
+                  onClick={() => {
+                    addPokemonToPlayer(selectedPlayer.id, poke);
+                    setCurrentView('profile');
+                  }}
+                  className="w-full bg-white rounded-xl p-3 shadow-md hover:shadow-lg transition flex items-center gap-3 text-left"
+                >
+                  <img
+                    src={getPokemonImageUrl(poke.pokeId)}
+                    alt={poke.name}
+                    className="w-12 h-12 object-contain"
+                    onError={(e) => { e.target.src = ''; }}
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-bold text-gray-800">{poke.name}</h3>
+                    <p className="text-xs text-gray-600">#ID {poke.pokeId}</p>
                   </div>
-                </div>
-              </button>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -408,7 +401,10 @@ const PokemonBattleLogger = () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-500 via-pink-400 to-red-500 p-4">
         <div className="max-w-md mx-auto">
           <button
-            onClick={() => setCurrentView('profile')}
+            onClick={() => {
+              setCurrentView('profile');
+              setSelectedPlayer({...selectedPlayer, editingPokemon: null});
+            }}
             className="text-white font-bold mb-6 flex items-center gap-2 hover:opacity-80"
           >
             ← Retour
@@ -432,7 +428,7 @@ const PokemonBattleLogger = () => {
                   type="number"
                   value={poke.level}
                   onChange={(e) => {
-                    const updated = {...poke, level: parseInt(e.target.value)};
+                    const updated = {...poke, level: parseInt(e.target.value) || 1};
                     setSelectedPlayer({...selectedPlayer, editingPokemon: updated});
                   }}
                   className="w-full border-2 border-gray-300 rounded-xl px-4 py-2"
@@ -449,7 +445,7 @@ const PokemonBattleLogger = () => {
                       type="number"
                       value={poke[stat]}
                       onChange={(e) => {
-                        const updated = {...poke, [stat]: parseInt(e.target.value)};
+                        const updated = {...poke, [stat]: parseInt(e.target.value) || 0};
                         setSelectedPlayer({...selectedPlayer, editingPokemon: updated});
                       }}
                       className="w-full border-2 border-gray-300 rounded-xl px-2 py-1 text-sm"
@@ -474,10 +470,9 @@ const PokemonBattleLogger = () => {
 
               <button
                 onClick={() => {
-                  updatePlayer(selectedPlayer.id, {
-                    pokemon: selectedPlayer.pokemon.map(p => p.id === poke.id ? poke : p)
-                  });
+                  updatePokemonInPlayer(selectedPlayer.id, poke.id, poke);
                   setCurrentView('profile');
+                  setSelectedPlayer({...selectedPlayer, editingPokemon: null});
                 }}
                 className="w-full bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 transition flex items-center justify-center gap-2"
               >
