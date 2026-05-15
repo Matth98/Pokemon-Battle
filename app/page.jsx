@@ -352,8 +352,7 @@ PokemonSearchBar.displayName = 'PokemonSearchBar';
         </div>
       </div>
     );
-  };
-});
+  });
 
 HomeView.displayName = 'HomeView';
 
