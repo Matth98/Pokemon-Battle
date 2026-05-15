@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronRight, Plus, Trash2, Download, Search, X, BarChart3 } from 'lucide-react';
 
 const PokemonBattleLogger = () => {
@@ -33,6 +33,23 @@ const PokemonBattleLogger = () => {
   useEffect(() => {
     setPokemonSearch('');
   }, [homeTab]);
+
+  const handleSetHomeTab = useCallback((tab) => {
+  setHomeTab(tab);
+  setPokemonSearch('');
+}, []);
+
+const handleSetPokemonView = useCallback((view) => {
+  setPokemonView(view);
+}, []);
+
+const handleSetPokemonSearch = useCallback((search) => {
+  setPokemonSearch(search);
+}, []);
+
+const handleAddNewPlayerForm = useCallback(() => {
+  setShowNewPlayerForm(true);
+}, []);
 
   // Types Pokémon avec couleurs
   const pokemonTypes = {
@@ -150,7 +167,7 @@ PokemonImage.displayName = 'PokemonImage';
 
 PokemonSearchBar.displayName = 'PokemonSearchBar';
 
-  const HomeView = () => {
+  const HomeView = React.memo(() => {
       console.log('HomeView rendu, homeTab =', homeTab);
     const filteredPokemon = allPokemon.filter((p) =>
       p.name.toLowerCase().includes(pokemonSearch.toLowerCase())
@@ -166,10 +183,7 @@ PokemonSearchBar.displayName = 'PokemonSearchBar';
 
           <div className="flex gap-2 mb-6 bg-white rounded-xl p-1 shadow-md">
             <button
-  onClick={() => {
-    setHomeTab('players');
-    setPokemonSearch('');
-  }}
+  onClick={() => handleSetHomeTab('players')}
   className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
     homeTab === 'players'
       ? 'bg-red-500 text-white'
@@ -179,10 +193,7 @@ PokemonSearchBar.displayName = 'PokemonSearchBar';
   👥 Joueurs
 </button>
 <button
-  onClick={() => {
-    setHomeTab('pokemons');
-    setPokemonSearch('');
-  }}
+  onClick={() => handleSetHomeTab('pokemons')}
   className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
     homeTab === 'pokemons'
       ? 'bg-red-500 text-white'
@@ -201,7 +212,7 @@ PokemonSearchBar.displayName = 'PokemonSearchBar';
                   <h2 className="text-2xl font-bold text-gray-800 mb-2">Aucun joueur</h2>
                   <p className="text-gray-600 mb-6">Commencez par ajouter un joueur</p>
                   <button
-                    onClick={() => setShowNewPlayerForm(true)}
+                    onClick={handleAddNewPlayerForm}
                     className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-3 rounded-xl font-bold hover:shadow-lg transition"
                   >
                     Ajouter un joueur
@@ -234,7 +245,7 @@ PokemonSearchBar.displayName = 'PokemonSearchBar';
                     </button>
                   ))}
                   <button
-                    onClick={() => setShowNewPlayerForm(true)}
+                    onClick={handleAddNewPlayerForm}
                     className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition text-center font-bold text-red-500 border-2 border-red-300 flex items-center justify-center gap-2"
                   >
                     <Plus size={20} /> Nouveau joueur
@@ -256,7 +267,7 @@ PokemonSearchBar.displayName = 'PokemonSearchBar';
 
               <div className="flex gap-2 mb-3">
                 <button
-                  onClick={() => setPokemonView('grid')}
+                  onClick={() => handleSetPokemonView('grid')}
                   className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
                     pokemonView === 'grid'
                       ? 'bg-white text-red-500'
@@ -266,7 +277,7 @@ PokemonSearchBar.displayName = 'PokemonSearchBar';
                   ⊞ Grille
                 </button>
                 <button
-                  onClick={() => setPokemonView('list')}
+                  onClick={() => handleSetPokemonView('list')}
                   className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
                     pokemonView === 'list'
                       ? 'bg-white text-red-500'
@@ -342,6 +353,9 @@ PokemonSearchBar.displayName = 'PokemonSearchBar';
       </div>
     );
   };
+});
+
+HomeView.displayName = 'HomeView';
 
   const PlayerView = () => {
     if (!selectedPlayer) return null;
