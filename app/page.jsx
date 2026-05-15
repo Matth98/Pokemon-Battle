@@ -29,6 +29,10 @@ const PokemonBattleLogger = () => {
   useEffect(() => {
     localStorage.setItem('pokebattle_players', JSON.stringify(players));
   }, [players]);
+  
+  useEffect(() => {
+    setPokemonSearch('');
+  }, [homeTab]);
 
   // Types Pokémon avec couleurs
   const pokemonTypes = {
@@ -133,25 +137,31 @@ const PokemonBattleLogger = () => {
 
           <div className="flex gap-2 mb-6 bg-white rounded-xl p-1 shadow-md">
             <button
-              onClick={() => setHomeTab('players')}
-              className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
-                homeTab === 'players'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-              }`}
-            >
-              👥 Joueurs
-            </button>
-            <button
-              onClick={() => setHomeTab('pokemons')}
-              className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
-                homeTab === 'pokemons'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-              }`}
-            >
-              🎯 Pokémon
-            </button>
+  onClick={() => {
+    setHomeTab('players');
+    setPokemonSearch('');
+  }}
+  className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
+    homeTab === 'players'
+      ? 'bg-red-500 text-white'
+      : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+  }`}
+>
+  👥 Joueurs
+</button>
+<button
+  onClick={() => {
+    setHomeTab('pokemons');
+    setPokemonSearch('');
+  }}
+  className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
+    homeTab === 'pokemons'
+      ? 'bg-red-500 text-white'
+      : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+  }`}
+>
+  🎯 Pokémon
+</button>
           </div>
 
           {homeTab === 'players' ? (
