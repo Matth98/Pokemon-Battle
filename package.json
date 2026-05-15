@@ -4,22 +4,16 @@
   "description": "Backend API pour l'application PokéBattle",
   "main": "pokebattle-backend-server.js",
   "scripts": {
-    "start": "node pokebattle-backend-server.js",
-    "dev": "nodemon pokebattle-backend-server.js"
+    "start": "node pokebattle-backend-server.js"
   },
   "keywords": ["pokemon", "battle", "tracker"],
   "author": "Partoo Design",
   "license": "MIT",
   "dependencies": {
-    "bcrypt": "^5.1.1",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "jsonwebtoken": "^9.1.2",
-    "mongoose": "^7.6.3"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
+    "cors": "^2.8.5",
+    "mongoose": "^7.6.3",
+    "dotenv": "^16.3.1"
   },
   "engines": {
     "node": ">=16.0.0"
