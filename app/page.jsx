@@ -123,6 +123,7 @@ const PokemonBattleLogger = () => {
   };
 
   const HomeView = () => {
+      console.log('HomeView rendu, homeTab =', homeTab);
     const filteredPokemon = allPokemon.filter((p) =>
       p.name.toLowerCase().includes(pokemonSearch.toLowerCase())
     );
