@@ -212,6 +212,7 @@ const PokemonBattleLogger = () => {
               <div className="relative mb-3">
                 <Search className="absolute left-3 top-3 text-gray-400" size={18} />
                 <input
+  key={homeTab}
   type="text"
   id="pokemon-search"
   name="pokemon-search"
