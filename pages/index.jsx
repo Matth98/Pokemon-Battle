@@ -466,6 +466,4 @@ const PokemonBattleLogger = () => {
   );
 };
 
-export default function Home() {
-  return <PokemonBattleLogger />;
-}
+export default PokemonBattleLogger;
