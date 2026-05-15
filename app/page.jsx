@@ -11,6 +11,7 @@ const PokemonBattleLogger = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [pokemonNames, setPokemonNames] = useState({});
 
   // Charger les données du localStorage
   useEffect(() => {
@@ -24,6 +25,50 @@ const PokemonBattleLogger = () => {
     }
   }, []);
 
+  // Charger les noms français des Pokémon au démarrage
+  useEffect(() => {
+    const loadPokemonNames = async () => {
+      try {
+        const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
+        const data = await response.json();
+        
+        const namesMap = {};
+        
+        // Charger les noms français par batch
+        for (let i = 0; i < data.results.length; i += 50) {
+          const batch = data.results.slice(i, i + 50);
+          
+          await Promise.all(
+            batch.map(async (poke, idx) => {
+              try {
+                const pokeId = i + idx + 1;
+                const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokeId}`);
+                const speciesData = await speciesRes.json();
+                
+                const frenchName = speciesData.names.find(n => n.language.name === 'fr')?.name || poke.name;
+                namesMap[pokeId] = {
+                  name: frenchName,
+                  englishName: poke.name,
+                };
+              } catch (e) {
+                namesMap[i + idx + 1] = {
+                  name: poke.name.charAt(0).toUpperCase() + poke.name.slice(1),
+                  englishName: poke.name,
+                };
+              }
+            })
+          );
+        }
+        
+        setPokemonNames(namesMap);
+      } catch (error) {
+        console.error('Erreur chargement noms:', error);
+      }
+    };
+
+    loadPokemonNames();
+  }, []);
+
   // Sauvegarder les données
   useEffect(() => {
     if (players.length > 0) {
@@ -35,7 +80,7 @@ const PokemonBattleLogger = () => {
     return `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
   };
 
-  // Rechercher les Pokémon
+  // Rechercher les Pokémon en français
   const searchPokemon = async (query) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -47,15 +92,41 @@ const PokemonBattleLogger = () => {
       const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
       const data = await response.json();
       
-      const filtered = data.results
-        .filter(poke => poke.name.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 50)
-        .map((poke, idx) => ({
-          name: poke.name.charAt(0).toUpperCase() + poke.name.slice(1),
-          pokeId: data.results.indexOf(poke) + 1,
-        }));
-
-      setSearchResults(filtered);
+      // Charger les noms français pour les résultats
+      const results = [];
+      for (let i = 0; i < data.results.length; i++) {
+        const poke = data.results[i];
+        const pokeId = i + 1;
+        
+        // Utiliser les noms déjà chargés ou charger à la demande
+        let frenchName = pokemonNames[pokeId]?.name;
+        
+        if (!frenchName) {
+          try {
+            const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokeId}`);
+            const speciesData = await speciesRes.json();
+            frenchName = speciesData.names.find(n => n.language.name === 'fr')?.name || poke.name;
+          } catch (e) {
+            frenchName = poke.name.charAt(0).toUpperCase() + poke.name.slice(1);
+          }
+        }
+        
+        // Chercher dans le nom français ET anglais
+        if (
+          frenchName.toLowerCase().includes(query.toLowerCase()) ||
+          poke.name.toLowerCase().includes(query.toLowerCase())
+        ) {
+          results.push({
+            pokeId,
+            name: frenchName,
+            englishName: poke.name,
+          });
+          
+          if (results.length >= 50) break;
+        }
+      }
+      
+      setSearchResults(results);
     } catch (error) {
       console.error('Erreur recherche:', error);
       setSearchResults([]);
@@ -321,7 +392,7 @@ const PokemonBattleLogger = () => {
             <Search className="absolute left-3 top-3 text-gray-400" size={18} />
             <input
               type="text"
-              placeholder="Chercher..."
+              placeholder="Chercher un Pokémon..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -333,9 +404,12 @@ const PokemonBattleLogger = () => {
           </div>
 
           {searchLoading ? (
-            <div className="text-center"><Loader className="animate-spin mx-auto" /></div>
+            <div className="text-center text-white">
+              <Loader className="animate-spin mx-auto mb-2" />
+              <p>Recherche en cours...</p>
+            </div>
           ) : searchTerm && searchResults.length === 0 ? (
-            <div className="bg-white rounded-xl p-6 text-center text-gray-600">Aucun résultat</div>
+            <div className="bg-white rounded-xl p-6 text-center text-gray-600">Aucun résultat trouvé</div>
           ) : searchTerm ? (
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {searchResults.map((poke) => (
@@ -356,7 +430,7 @@ const PokemonBattleLogger = () => {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-xl p-6 text-center text-gray-600">Commence à taper...</div>
+            <div className="bg-white rounded-xl p-6 text-center text-gray-600">Commence à taper un nom...</div>
           )}
         </div>
       </div>
