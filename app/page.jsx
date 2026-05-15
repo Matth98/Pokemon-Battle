@@ -1,15 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Plus, Trash2, Search, X, Edit2, Save } from 'lucide-react';
+import { ChevronRight, Plus, Trash2, Search, Edit2, Save, Loader } from 'lucide-react';
 
 const FRENCH_NAMES_MAP = {
   'bulbasaur': 'Bulbizarre', 'ivysaur': 'Herbizarre', 'venusaur': 'Florizarre',
   'charmander': 'Salamèche', 'charmeleon': 'Reptincel', 'charizard': 'Dracaufeu',
   'squirtle': 'Carapuce', 'wartortle': 'Carabaffe', 'blastoise': 'Tortank',
-  'pikachu': 'Pikachu', 'raichu': 'Raichu', 'arcanine': 'Arcanin',
-  'lapras': 'Lokhlass', 'gengar': 'Ectoplasma', 'dragonite': 'Dracolosse',
-  'alakazam': 'Alakazam', 'machamp': 'Machamp', 'golem': 'Golem',
+  'caterpie': 'Chenipan', 'metapod': 'Chrysacier', 'butterfree': 'Papilusion',
+  'weedle': 'Aspicot', 'kakuna': 'Coconfort', 'beedrill': 'Dardargnan',
+  'pidgeot': 'Pidgeot', 'pikachu': 'Pikachu', 'raichu': 'Raichu',
+  'arcanine': 'Arcanin', 'lapras': 'Lokhlass', 'gengar': 'Ectoplasma',
+  'dragonite': 'Dracolosse', 'alakazam': 'Alakazam', 'machamp': 'Machamp',
+  'golem': 'Golem', 'weavile': 'Momolice', 'garchomp': 'Garchomp',
+  'blaziken': 'Flambusard', 'rotom-wash': 'Rotom-Lavage', 'heatran': 'Heatran',
+  'incineroar': 'Incinéroar', 'corviknight': 'Corvailleur', 'grimmsnarl': 'Babimanta',
 };
 
 const PokemonBattleLogger = () => {
@@ -17,7 +22,8 @@ const PokemonBattleLogger = () => {
   const [currentView, setCurrentView] = useState('home');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [showNewPlayerForm, setShowNewPlayerForm] = useState(false);
-  const [allPokemon, setAllPokemon] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   // Charger les données du localStorage
   useEffect(() => {
@@ -31,29 +37,6 @@ const PokemonBattleLogger = () => {
     }
   }, []);
 
-  // Charger les Pokémon une seule fois
-  useEffect(() => {
-    const loadPokemon = async () => {
-      try {
-        const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
-        const data = await response.json();
-        
-        const list = data.results.map((poke, index) => ({
-          id: index + 1,
-          name: FRENCH_NAMES_MAP[poke.name] || poke.name.charAt(0).toUpperCase() + poke.name.slice(1),
-          pokeId: index + 1,
-          types: [],
-        }));
-        
-        setAllPokemon(list);
-      } catch (error) {
-        console.error('Erreur chargement Pokémon:', error);
-      }
-    };
-
-    loadPokemon();
-  }, []);
-
   // Sauvegarder les données
   useEffect(() => {
     if (players.length > 0) {
@@ -63,6 +46,38 @@ const PokemonBattleLogger = () => {
 
   const getPokemonImageUrl = (id) => {
     return `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
+  };
+
+  // Rechercher les Pokémon
+  const searchPokemon = async (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      // Récupérer tous les Pokémon une fois
+      const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
+      const data = await response.json();
+      
+      // Filtrer par nom
+      const filtered = data.results
+        .filter(poke => poke.name.toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 50)
+        .map((poke, idx) => ({
+          name: FRENCH_NAMES_MAP[poke.name] || poke.name.charAt(0).toUpperCase() + poke.name.slice(1),
+          pokeId: data.results.indexOf(poke) + 1,
+          apiUrl: poke.url,
+        }));
+
+      setSearchResults(filtered);
+    } catch (error) {
+      console.error('Erreur recherche:', error);
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
   };
 
   const addPlayer = (name) => {
@@ -172,7 +187,7 @@ const PokemonBattleLogger = () => {
                         {' - '}
                         <span className="text-red-600 font-bold">{player.stats.losses}D</span>
                         {' | '}
-                        {player.pokemon.length} Pokémon
+                        {(player.pokemon || []).length} Pokémon
                       </p>
                     </div>
                     <ChevronRight className="text-red-500" />
@@ -328,9 +343,6 @@ const PokemonBattleLogger = () => {
   // ADD POKEMON VIEW
   if (currentView === 'addPokemon') {
     const [searchTerm, setSearchTerm] = useState('');
-    const filteredPokemon = allPokemon.filter(p => 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 100);
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-500 via-teal-400 to-blue-500 p-4">
@@ -352,22 +364,30 @@ const PokemonBattleLogger = () => {
               type="text"
               placeholder="Chercher un Pokémon..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                searchPokemon(e.target.value);
+              }}
               className="w-full border-2 border-white rounded-xl px-3 py-2 pl-10 focus:outline-none text-sm bg-white text-gray-800"
               autoComplete="off"
               autoFocus
             />
           </div>
 
-          {filteredPokemon.length === 0 && searchTerm ? (
+          {searchLoading ? (
+            <div className="bg-white rounded-xl p-6 text-center">
+              <Loader className="animate-spin mx-auto mb-2" size={24} />
+              <p className="text-gray-600">Recherche en cours...</p>
+            </div>
+          ) : searchTerm && searchResults.length === 0 ? (
             <div className="bg-white rounded-xl p-6 text-center">
               <p className="text-gray-600">Aucun Pokémon trouvé</p>
             </div>
-          ) : (
+          ) : searchTerm ? (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredPokemon.map((poke) => (
+              {searchResults.map((poke) => (
                 <button
-                  key={poke.id}
+                  key={poke.pokeId}
                   onClick={() => {
                     addPokemonToPlayer(selectedPlayer.id, poke);
                     setCurrentView('profile');
@@ -386,6 +406,10 @@ const PokemonBattleLogger = () => {
                   </div>
                 </button>
               ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl p-6 text-center">
+              <p className="text-gray-600">Commence à taper un nom...</p>
             </div>
           )}
         </div>
