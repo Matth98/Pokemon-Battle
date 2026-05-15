@@ -99,28 +99,30 @@ const PokemonBattleLogger = () => {
     );
   };
 
-  const PokemonImage = ({ pokemon }) => {
-    const [error, setError] = useState(false);
-    const imageUrl = getPokemonImageUrl(pokemon.pokeId);
+  const PokemonImage = React.memo(({ pokemon }) => {
+  const [error, setError] = useState(false);
+  const imageUrl = getPokemonImageUrl(pokemon.pokeId);
 
-    if (error) {
-      return (
-        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-          <div className="text-4xl">🔷</div>
-        </div>
-      );
-    }
-
+  if (error) {
     return (
-      <img
-        src={imageUrl}
-        alt={pokemon.name}
-        className="w-full h-full object-contain"
-        onError={() => setError(true)}
-        onLoad={() => setLoadingImages(prev => ({ ...prev, [pokemon.id]: false }))}
-      />
+      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+        <div className="text-4xl">🔷</div>
+      </div>
     );
-  };
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={pokemon.name}
+      className="w-full h-full object-contain"
+      onError={() => setError(true)}
+      loading="lazy"
+    />
+  );
+});
+
+PokemonImage.displayName = 'PokemonImage';
 
   const HomeView = () => {
       console.log('HomeView rendu, homeTab =', homeTab);
