@@ -257,7 +257,7 @@ PokemonImage.displayName = 'PokemonImage';
                       className="bg-white rounded-xl p-3 shadow-md hover:shadow-lg transition"
                     >
                       <div className="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg mb-2 p-2 flex items-center justify-center">
-                        <div className="text-4xl">🔷</div>
+                        <PokemonImage pokemon={poke} />
                       </div>
                       <h3 className="font-bold text-gray-800 text-sm mb-1 text-center">{poke.name}</h3>
                       <div className="flex gap-1 mb-2 flex-wrap justify-center">
@@ -290,7 +290,7 @@ PokemonImage.displayName = 'PokemonImage';
                       className="bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition flex items-center gap-3"
                     >
                       <div className="w-16 h-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
-                        <div className="text-2xl">🔷</div>
+                        <PokemonImage pokemon={poke} />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-gray-800">{poke.name}</h3>
