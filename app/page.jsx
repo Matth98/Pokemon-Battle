@@ -939,7 +939,7 @@ const PokemonBattleLogger = () => {
           onClick={() => setCurrentTab('players')}
           className={`flex flex-col items-center gap-1 py-2 px-4 rounded-2xl transition ${
             currentTab === 'players' || currentTab === 'playerDetail' || currentTab === 'addPokemon' 
-              ? `text-orange-500 border border-orange-500` 
+              ? `text-orange-500` 
               : `${t.textSecondary} hover:${t.text}`
           }`}
         >
@@ -968,7 +968,7 @@ const PokemonBattleLogger = () => {
         <button
           onClick={() => setCurrentTab('teams')}
           className={`flex flex-col items-center gap-1 py-2 px-4 rounded-2xl transition ${
-            currentTab === 'teams' ? `text-orange-500 border border-orange-500` : `${t.textSecondary} hover:${t.text}`
+            currentTab === 'teams' ? `text-orange-500` : `${t.textSecondary} hover:${t.text}`
           }`}
         >
           <Shield size={24} />
