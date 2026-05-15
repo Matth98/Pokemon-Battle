@@ -48,6 +48,11 @@ const PokemonBattleLogger = () => {
     notes: '',
     winner: null,
   });
+  const [newTeamData, setNewTeamData] = useState({
+    name: '',
+    owner: null,
+    pokemon: [],
+  });
 
   // Charger le thème du localStorage
   useEffect(() => {
@@ -881,7 +886,9 @@ const PokemonBattleLogger = () => {
           <h1 className={`text-2xl font-black ${t.text}`}>Équipes</h1>
           <p className={`${t.textSecondary} text-sm`}>{teams.length} équipes</p>
         </div>
-        <button className="bg-orange-500 text-white px-6 py-2 rounded-full font-black hover:bg-orange-600 transition">
+        <button 
+          onClick={() => setShowNewTeamForm(true)}
+          className="bg-orange-500 text-white px-6 py-2 rounded-full font-black hover:bg-orange-600 transition">
           + Créer
         </button>
       </div>
@@ -905,6 +912,76 @@ const PokemonBattleLogger = () => {
           ))
         )}
       </div>
+
+      {showNewTeamForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50">
+          <div className={`w-full ${t.bgPrimary} rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto`}>
+            <h2 className={`text-2xl font-black ${t.text} mb-6`}>Créer une équipe</h2>
+            
+            <div className="space-y-6">
+              <div>
+                <label className={`${t.textSecondary} font-bold text-sm`}>NOM DE L'ÉQUIPE</label>
+                <input 
+                  type="text"
+                  placeholder="Ex: Frontale, Spéciale..."
+                  value={newTeamData.name}
+                  onChange={(e) => setNewTeamData({...newTeamData, name: e.target.value})}
+                  className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className={`${t.textSecondary} font-bold text-sm`}>PROPRIÉTAIRE</label>
+                <select 
+                  value={newTeamData.owner || ''}
+                  onChange={(e) => setNewTeamData({...newTeamData, owner: e.target.value})}
+                  className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
+                >
+                  <option value="">Choisir un joueur</option>
+                  {players.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowNewTeamForm(false);
+                    setNewTeamData({ name: '', owner: null, pokemon: [] });
+                  }}
+                  className={`flex-1 ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} ${t.text} py-3 rounded-xl font-bold transition`}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => {
+                    if (newTeamData.name.trim() && newTeamData.owner) {
+                      const owner = players.find(p => p.id === parseInt(newTeamData.owner));
+                      const newTeam = {
+                        id: Date.now(),
+                        name: newTeamData.name,
+                        owner: owner?.name,
+                        pokemon: [],
+                        format: '2v2',
+                      };
+                      setTeams([...teams, newTeam]);
+                      setShowNewTeamForm(false);
+                      setNewTeamData({ name: '', owner: null, pokemon: [] });
+                    } else {
+                      alert('Veuillez remplir tous les champs');
+                    }
+                  }}
+                  className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black hover:bg-orange-600 transition"
+                >
+                  Créer l'équipe
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
