@@ -223,26 +223,27 @@ PokemonImage.displayName = 'PokemonImage';
               </p>
 
               <div className="relative mb-3">
-  <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-  <input
-    type="text"
-    id="pokemon-search"
-    name="pokemon-search"
-    placeholder="Chercher un Pokémon..."
-    value={pokemonSearch}
-    onChange={(e) => setPokemonSearch(e.target.value)}
-    className="w-full border-2 border-white rounded-xl px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-yellow-300 text-sm bg-white text-gray-800"
-    autoComplete="off"
-  />
-  {pokemonSearch && (
-    <button
-      onClick={() => setPokemonSearch('')}
-      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-    >
-      <X size={18} />
-    </button>
-  )}
-</div>
+                <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  id="pokemon-search"
+                  name="pokemon-search"
+                  placeholder="Chercher un Pokémon..."
+                  value={pokemonSearch}
+                  onChange={(e) => setPokemonSearch(e.target.value)}
+                  className="w-full border-2 border-white rounded-xl px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-yellow-300 text-sm bg-white text-gray-800"
+                  autoComplete="off"
+                  key="search-input"
+                />
+                {pokemonSearch && (
+                  <button
+                    onClick={() => setPokemonSearch('')}
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
 
               <div className="flex gap-2 mb-3">
                 <button
