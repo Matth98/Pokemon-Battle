@@ -1,33 +1,56 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Plus, Trash2, Search, Edit2, Save, Loader, Sword, BarChart3 } from 'lucide-react';
+import { Home, Users, Plus, Zap, Shield, Search, ChevronRight, Trash2, Edit2, Save, Loader } from 'lucide-react';
 
 const PokemonBattleLogger = () => {
   const [players, setPlayers] = useState([]);
-  const [currentView, setCurrentView] = useState('home');
+  const [currentTab, setCurrentTab] = useState('home');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [showNewPlayerForm, setShowNewPlayerForm] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [pokemonNames, setPokemonNames] = useState({});
-
-  // States pour le combat
-  const [battleMode, setBattleMode] = useState(null); // '1v1' ou '2v2'
-  const [battlePlayers, setBattlePlayers] = useState([]); // Les joueurs en combat
-  const [selectedTeams, setSelectedTeams] = useState({}); // Les équipes sélectionnées
-  const [battleState, setBattleState] = useState(null); // État du combat en cours
-  const [battleHistory, setBattleHistory] = useState({}); // Historique par joueur
+  const [teams, setTeams] = useState([]);
+  const [battles, setBattles] = useState([]);
+  const [showNewBattleForm, setShowNewBattleForm] = useState(false);
+  const [newBattle, setNewBattle] = useState({
+    format: '1v1',
+    player1: null,
+    player2: null,
+    date: new Date().toISOString().split('T')[0],
+    notes: '',
+    winner: null,
+  });
 
   // Charger les données du localStorage
   useEffect(() => {
     const saved = localStorage.getItem('pokebattle_players');
+    const savedTeams = localStorage.getItem('pokebattle_teams');
+    const savedBattles = localStorage.getItem('pokebattle_battles');
+    
     if (saved) {
       try {
         setPlayers(JSON.parse(saved));
       } catch (e) {
         console.error('Erreur:', e);
+      }
+    }
+    
+    if (savedTeams) {
+      try {
+        setTeams(JSON.parse(savedTeams));
+      } catch (e) {
+        console.error('Erreur teams:', e);
+      }
+    }
+
+    if (savedBattles) {
+      try {
+        setBattles(JSON.parse(savedBattles));
+      } catch (e) {
+        console.error('Erreur battles:', e);
       }
     }
   }, []);
@@ -41,7 +64,7 @@ const PokemonBattleLogger = () => {
         
         const namesMap = {};
         
-        for (let i = 0; i < data.results.length; i += 50) {
+        for (let i = 0; i < Math.min(data.results.length, 200); i += 50) {
           const batch = data.results.slice(i, i + 50);
           
           await Promise.all(
@@ -58,8 +81,8 @@ const PokemonBattleLogger = () => {
                 };
               } catch (e) {
                 namesMap[i + idx + 1] = {
-                  name: poke.name.charAt(0).toUpperCase() + poke.name.slice(1),
-                  englishName: poke.name,
+                  name: (data.results[i + idx]?.name || 'Pokémon').charAt(0).toUpperCase() + (data.results[i + idx]?.name || '').slice(1),
+                  englishName: data.results[i + idx]?.name || '',
                 };
               }
             })
@@ -80,7 +103,13 @@ const PokemonBattleLogger = () => {
     if (players.length > 0) {
       localStorage.setItem('pokebattle_players', JSON.stringify(players));
     }
-  }, [players]);
+    if (teams.length > 0) {
+      localStorage.setItem('pokebattle_teams', JSON.stringify(teams));
+    }
+    if (battles.length > 0) {
+      localStorage.setItem('pokebattle_battles', JSON.stringify(battles));
+    }
+  }, [players, teams, battles]);
 
   const getPokemonImageUrl = (id) => {
     return `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
@@ -196,407 +225,422 @@ const PokemonBattleLogger = () => {
     setSelectedPlayer(updatedPlayers.find(p => p.id === playerId));
   };
 
-  const startBattle = (mode, playersInBattle) => {
-    setBattleMode(mode);
-    setBattlePlayers(playersInBattle);
-    setSelectedTeams({});
-    setCurrentView('selectTeams');
-  };
-
-  const confirmTeams = () => {
-    const allTeamsSelected = battleMode === '1v1' 
-      ? Object.keys(selectedTeams).length === 2 && Object.values(selectedTeams).every(t => t.length === 3)
-      : Object.keys(selectedTeams).length === 2 && Object.values(selectedTeams).every(t => t.length === 4);
-
-    if (!allTeamsSelected) {
-      alert('Veuillez sélectionner une équipe complète pour chaque joueur');
+  const recordBattle = () => {
+    if (!newBattle.player1 || !newBattle.player2 || !newBattle.winner) {
+      alert('Veuillez remplir tous les champs');
       return;
     }
 
-    // Initialiser le combat
     const battle = {
       id: Date.now(),
-      players: battlePlayers.map(p => ({
-        id: p.id,
-        name: p.name,
-        team: selectedTeams[p.id],
-        eliminated: [],
-      })),
-      winner: null,
-      date: new Date().toLocaleDateString('fr-FR'),
+      ...newBattle,
+      player1Name: newBattle.player1,
+      player2Name: newBattle.player2,
     };
 
-    setBattleState(battle);
-    setCurrentView('battle');
-  };
-
-  const eliminatePokemon = (playerIndex, pokemonId) => {
-    const updatedBattle = { ...battleState };
-    const pokemon = updatedBattle.players[playerIndex].team.find(p => p.id === pokemonId);
-    
-    if (pokemon) {
-      updatedBattle.players[playerIndex].eliminated.push(pokemonId);
-      setBattleState(updatedBattle);
-
-      // Vérifier si un joueur a perdu tous ses Pokémon
-      const remainingPokemon = updatedBattle.players[playerIndex].team.filter(
-        p => !updatedBattle.players[playerIndex].eliminated.includes(p.id)
-      );
-
-      if (remainingPokemon.length === 0) {
-        endBattle(1 - playerIndex); // L'autre joueur gagne
-      }
-    }
-  };
-
-  const endBattle = (winnerIndex) => {
-    const updatedBattle = { ...battleState };
-    updatedBattle.winner = winnerIndex;
+    setBattles([...battles, battle]);
 
     // Mettre à jour les stats des joueurs
-    const updatedPlayers = players.map(player => {
-      const playerInBattle = updatedBattle.players.findIndex(p => p.id === player.id);
-      if (playerInBattle !== -1) {
-        const isWinner = playerInBattle === winnerIndex;
+    const updatedPlayers = players.map(p => {
+      if (p.id === newBattle.player1 || p.id === newBattle.player2) {
+        const isWinner = (newBattle.winner === 'player1' && p.id === newBattle.player1) || 
+                         (newBattle.winner === 'player2' && p.id === newBattle.player2);
         return {
-          ...player,
+          ...p,
           stats: {
-            wins: player.stats.wins + (isWinner ? 1 : 0),
-            losses: player.stats.losses + (isWinner ? 0 : 1),
+            wins: p.stats.wins + (isWinner ? 1 : 0),
+            losses: p.stats.losses + (isWinner ? 0 : 1),
           },
-          battles: [...(player.battles || []), {
-            id: updatedBattle.id,
-            opponent: updatedBattle.players[1 - playerInBattle].name,
-            won: isWinner,
-            date: updatedBattle.date,
-          }],
         };
       }
-      return player;
+      return p;
     });
-
     setPlayers(updatedPlayers);
-    setBattleState(updatedBattle);
-    setCurrentView('battleResult');
+
+    // Réinitialiser le formulaire
+    setNewBattle({
+      format: '1v1',
+      player1: null,
+      player2: null,
+      date: new Date().toISOString().split('T')[0],
+      notes: '',
+      winner: null,
+    });
+    setShowNewBattleForm(false);
   };
 
-  // HOME VIEW
-  if (currentView === 'home') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-500 via-yellow-400 to-blue-500 p-4">
-        <div className="max-w-md mx-auto">
-          <div className="text-center mb-8 mt-6">
-            <h1 className="text-5xl font-black text-white mb-2 drop-shadow-lg">PokéBattle</h1>
-            <p className="text-white text-sm drop-shadow font-bold">Suivi Champions</p>
+  // HOME TAB
+  const renderHome = () => (
+    <div className="pb-24">
+      {/* Header */}
+      <div className="bg-gradient-to-b from-gray-900 to-gray-800 pt-8 pb-12 px-4">
+        <h1 className="text-4xl font-black text-white mb-2">Pokémon</h1>
+        <p className="text-yellow-400 text-3xl font-black mb-4">Battle Tracker</p>
+        <p className="text-gray-400">Enregistrez vos combats, analysez vos équipes</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="px-4 mt-6 space-y-4">
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700 text-center">
+            <div className="text-2xl mb-2">👥</div>
+            <p className="text-gray-400 text-sm">JOUEURS</p>
+            <p className="text-2xl font-black text-white">{players.length}</p>
           </div>
-
-          <div className="space-y-4">
-            <button
-              onClick={() => setCurrentView('players')}
-              className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition text-left font-bold text-gray-800"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">👥</span>
-                <div>Mes Profils ({players.length})</div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => setCurrentView('battles')}
-              className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition text-left font-bold text-gray-800"
-            >
-              <div className="flex items-center gap-3">
-                <Sword size={24} className="text-red-500" />
-                <div>Nouveaux Combats</div>
-              </div>
-            </button>
+          <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700 text-center">
+            <div className="text-2xl mb-2">⚔️</div>
+            <p className="text-gray-400 text-sm">COMBATS</p>
+            <p className="text-2xl font-black text-white">{battles.length}</p>
+          </div>
+          <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700 text-center">
+            <div className="text-2xl mb-2">🛡️</div>
+            <p className="text-gray-400 text-sm">ÉQUIPES</p>
+            <p className="text-2xl font-black text-white">{teams.length}</p>
           </div>
         </div>
       </div>
-    );
-  }
 
-  // PLAYERS LIST VIEW
-  if (currentView === 'players') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-500 via-yellow-400 to-blue-500 p-4">
-        <div className="max-w-md mx-auto">
-          <button
-            onClick={() => setCurrentView('home')}
-            className="text-white font-bold mb-6 flex items-center gap-2"
-          >
-            ← Retour
-          </button>
+      {/* Action Buttons */}
+      <div className="px-4 mt-8 space-y-4">
+        <button
+          onClick={() => setShowNewBattleForm(true)}
+          className="w-full bg-yellow-400 text-black py-4 rounded-2xl font-black text-lg hover:bg-yellow-500 transition"
+        >
+          + Combat
+        </button>
+        <button
+          onClick={() => setCurrentTab('players')}
+          className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-purple-700 transition"
+        >
+          👥 Ajouter joueur
+        </button>
+      </div>
 
-          <h1 className="text-3xl font-black text-white text-center mb-6">Mes Profils</h1>
-
-          {players.length === 0 ? (
-            <div className="bg-white rounded-3xl p-8 text-center shadow-2xl">
-              <div className="text-6xl mb-4">🎮</div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Aucun joueur</h2>
-              <button
-                onClick={() => setShowNewPlayerForm(true)}
-                className="w-full bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600"
-              >
-                Créer un profil
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {players.map((player) => (
-                <button
-                  key={player.id}
-                  onClick={() => {
-                    setSelectedPlayer(player);
-                    setCurrentView('profile');
-                  }}
-                  className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition text-left"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-800">{player.name}</h3>
-                      <p className="text-sm text-gray-500">
-                        {player.stats.wins}V - {player.stats.losses}D | {(player.pokemon || []).length} Pokémon
-                      </p>
-                    </div>
-                    <ChevronRight className="text-red-500" />
-                  </div>
-                </button>
-              ))}
-              <button
-                onClick={() => setShowNewPlayerForm(true)}
-                className="w-full bg-white rounded-xl p-4 shadow-md text-center font-bold text-red-500 border-2 border-red-300"
-              >
-                <Plus size={20} className="inline mr-2" /> Nouveau profil
-              </button>
-            </div>
+      {/* Recent Battles */}
+      <div className="px-4 mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-black text-white flex items-center gap-2">
+            📊 Combats récents
+          </h2>
+          {battles.length > 0 && (
+            <a href="#" onClick={() => setCurrentTab('battles')} className="text-yellow-400 font-bold">
+              Voir tout →
+            </a>
           )}
         </div>
 
-        {showNewPlayerForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50">
-            <div className="w-full bg-white rounded-t-3xl p-6 shadow-2xl">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">Nouveau profil</h2>
-              <input
-                type="text"
-                placeholder="Nom du joueur"
-                id="new-player-input"
-                className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 mb-4 focus:outline-none focus:border-red-500"
-                autoComplete="off"
-                autoFocus
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowNewPlayerForm(false);
-                    document.getElementById('new-player-input').value = '';
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-xl font-bold"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={() => {
-                    const input = document.getElementById('new-player-input');
-                    const name = input.value.trim();
-                    if (name) {
-                      addPlayer(name);
-                      setShowNewPlayerForm(false);
-                      input.value = '';
-                    }
-                  }}
-                  className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600"
-                >
-                  Créer
-                </button>
+        {battles.length === 0 ? (
+          <div className="bg-gray-800 rounded-2xl p-6 text-center border border-gray-700">
+            <p className="text-gray-400">Aucun combat enregistré</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {battles.slice(-2).map((battle) => (
+              <div key={battle.id} className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
+                <p className="text-yellow-400 text-sm font-bold mb-2">{battle.format}</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className={`font-bold ${battle.winner === 'player1' ? 'text-yellow-400' : 'text-gray-400'}`}>
+                      {battle.player1Name}
+                    </p>
+                  </div>
+                  <p className="text-gray-400 mx-4">vs</p>
+                  <div className="flex-1 text-right">
+                    <p className={`font-bold ${battle.winner === 'player2' ? 'text-yellow-400' : 'text-gray-400'}`}>
+                      {battle.player2Name}
+                    </p>
+                  </div>
+                </div>
+                {battle.winner && (
+                  <p className="text-yellow-400 text-sm text-center mt-2 font-bold">
+                    🏆 {battle.winner === 'player1' ? battle.player1Name : battle.player2Name} a gagné
+                  </p>
+                )}
               </div>
-            </div>
+            ))}
           </div>
         )}
       </div>
-    );
-  }
+    </div>
+  );
 
-  // PROFILE VIEW
-  if (currentView === 'profile' && selectedPlayer) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-400 to-pink-500 p-4">
-        <div className="max-w-md mx-auto">
-          <button
-            onClick={() => {
-              setCurrentView('players');
-              setSelectedPlayer(null);
-            }}
-            className="text-white font-bold mb-6 flex items-center gap-2"
-          >
-            ← Retour
-          </button>
-
-          <div className="bg-white rounded-3xl p-6 shadow-2xl mb-6">
-            <h1 className="text-4xl font-black text-center text-gray-800 mb-4">{selectedPlayer.name}</h1>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-green-50 rounded-xl p-4 text-center">
-                <p className="text-green-600 text-sm font-bold">Victoires</p>
-                <p className="text-4xl font-black text-green-600">{selectedPlayer.stats.wins}</p>
-              </div>
-              <div className="bg-red-50 rounded-xl p-4 text-center">
-                <p className="text-red-600 text-sm font-bold">Défaites</p>
-                <p className="text-4xl font-black text-red-600">{selectedPlayer.stats.losses}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 shadow-2xl">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex justify-between items-center">
-              Pokémon
-              <button
-                onClick={() => setCurrentView('addPokemon')}
-                className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600"
-              >
-                <Plus size={24} />
-              </button>
-            </h2>
-
-            {(selectedPlayer.pokemon || []).length === 0 ? (
-              <p className="text-gray-600 text-center py-8">Aucun Pokémon</p>
-            ) : (
-              <div className="space-y-3">
-                {selectedPlayer.pokemon.map((poke) => (
-                  <div key={poke.id} className="bg-gray-100 rounded-xl p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={getPokemonImageUrl(poke.pokeId)}
-                        alt={poke.name}
-                        className="w-16 h-16 object-contain"
-                      />
-                      <div>
-                        <h3 className="font-bold text-gray-800">{poke.name}</h3>
-                        <p className="text-sm text-gray-600">Niveau {poke.level}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setCurrentView('editPokemon');
-                          setSelectedPlayer({...selectedPlayer, editingPokemon: poke});
-                        }}
-                        className="bg-blue-500 text-white p-2 rounded-lg"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => deletePokemonFromPlayer(selectedPlayer.id, poke.id)}
-                        className="bg-red-500 text-white p-2 rounded-lg"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+  // PLAYERS TAB
+  const renderPlayers = () => (
+    <div className="pb-24">
+      <div className="bg-gray-900 pt-8 pb-6 px-4 flex justify-between items-center sticky top-0">
+        <div>
+          <h1 className="text-2xl font-black text-white">Joueurs</h1>
+          <p className="text-gray-400 text-sm">{players.length} joueurs</p>
         </div>
+        <button
+          onClick={() => setShowNewPlayerForm(true)}
+          className="bg-yellow-400 text-black px-4 py-2 rounded-full font-black hover:bg-yellow-500"
+        >
+          + Ajouter
+        </button>
       </div>
-    );
-  }
 
-  // ADD POKEMON VIEW
-  if (currentView === 'addPokemon') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-500 via-teal-400 to-blue-500 p-4">
-        <div className="max-w-md mx-auto">
-          <button
-            onClick={() => setCurrentView('profile')}
-            className="text-white font-bold mb-6 flex items-center gap-2"
-          >
-            ← Retour
-          </button>
+      <div className="px-4 mt-6 space-y-4">
+        {players.length === 0 ? (
+          <div className="bg-gray-800 rounded-2xl p-6 text-center border border-gray-700">
+            <p className="text-gray-400">Aucun joueur créé</p>
+          </div>
+        ) : (
+          players.map((player) => (
+            <button
+              key={player.id}
+              onClick={() => {
+                setSelectedPlayer(player);
+                setCurrentTab('playerDetail');
+              }}
+              className="w-full bg-gray-800 rounded-2xl p-4 border border-gray-700 hover:border-gray-600 transition text-left"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-white text-lg">{player.name}</h3>
+                  <p className="text-gray-400 text-sm">
+                    ⚔️ {player.stats.wins} combats · 🏆 {player.stats.wins} victoires
+                  </p>
+                </div>
+                <ChevronRight className="text-gray-400" />
+              </div>
+            </button>
+          ))
+        )}
+      </div>
 
-          <h1 className="text-3xl font-black text-white text-center mb-6">Ajouter un Pokémon</h1>
-
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+      {showNewPlayerForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end z-50">
+          <div className="w-full bg-gray-800 rounded-t-3xl p-6 border-t border-gray-700">
+            <h2 className="text-2xl font-black text-white mb-4">Nouveau joueur</h2>
             <input
               type="text"
-              placeholder="Chercher un Pokémon..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                searchPokemon(e.target.value);
-              }}
-              className="w-full border-2 border-white rounded-xl px-3 py-2 pl-10 text-sm bg-white text-gray-800"
+              placeholder="Nom du joueur"
+              id="new-player-input"
+              className="w-full bg-gray-700 text-white rounded-xl px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-yellow-400 border border-gray-600"
+              autoComplete="off"
               autoFocus
             />
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowNewPlayerForm(false);
+                  document.getElementById('new-player-input').value = '';
+                }}
+                className="flex-1 bg-gray-700 text-white py-3 rounded-xl font-bold"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  const input = document.getElementById('new-player-input');
+                  const name = input.value.trim();
+                  if (name) {
+                    addPlayer(name);
+                    setShowNewPlayerForm(false);
+                    input.value = '';
+                  }
+                }}
+                className="flex-1 bg-yellow-400 text-black py-3 rounded-xl font-black hover:bg-yellow-500"
+              >
+                Créer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // PLAYER DETAIL TAB
+  const renderPlayerDetail = () => (
+    selectedPlayer && (
+      <div className="pb-24">
+        <div className="bg-gradient-to-b from-gray-900 to-gray-800 pt-6 pb-8 px-4 flex justify-between items-start sticky top-0">
+          <button
+            onClick={() => {
+              setCurrentTab('players');
+              setSelectedPlayer(null);
+            }}
+            className="text-gray-400 hover:text-white"
+          >
+            ←
+          </button>
+          <h1 className="text-2xl font-black text-white">{selectedPlayer.name}</h1>
+          <div />
+        </div>
+
+        <div className="px-4 mt-6">
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-green-900 rounded-2xl p-4 border border-green-700 text-center">
+              <p className="text-green-400 text-sm font-bold">VICTOIRES</p>
+              <p className="text-3xl font-black text-white">{selectedPlayer.stats.wins}</p>
+            </div>
+            <div className="bg-red-900 rounded-2xl p-4 border border-red-700 text-center">
+              <p className="text-red-400 text-sm font-bold">DÉFAITES</p>
+              <p className="text-3xl font-black text-white">{selectedPlayer.stats.losses}</p>
+            </div>
           </div>
 
-          {searchLoading ? (
-            <div className="text-center text-white">
-              <Loader className="animate-spin mx-auto mb-2" />
-              <p>Recherche en cours...</p>
-            </div>
-          ) : searchTerm && searchResults.length === 0 ? (
-            <div className="bg-white rounded-xl p-6 text-center text-gray-600">Aucun résultat trouvé</div>
-          ) : searchTerm ? (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {searchResults.map((poke) => (
-                <button
-                  key={poke.pokeId}
-                  onClick={() => {
-                    addPokemonToPlayer(selectedPlayer.id, poke);
-                    setCurrentView('profile');
-                  }}
-                  className="w-full bg-white rounded-xl p-3 shadow-md hover:shadow-lg text-left flex gap-3"
-                >
-                  <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-12 h-12 object-contain" />
-                  <div>
-                    <h3 className="font-bold text-gray-800">{poke.name}</h3>
-                    <p className="text-xs text-gray-600">#{poke.pokeId}</p>
-                  </div>
-                </button>
-              ))}
+          <h2 className="text-xl font-black text-white mb-4 flex justify-between items-center">
+            Pokémon
+            <button
+              onClick={() => setCurrentTab('addPokemon')}
+              className="bg-yellow-400 text-black px-3 py-2 rounded-lg font-bold text-sm"
+            >
+              + Ajouter
+            </button>
+          </h2>
+
+          {(selectedPlayer.pokemon || []).length === 0 ? (
+            <div className="bg-gray-800 rounded-2xl p-6 text-center border border-gray-700">
+              <p className="text-gray-400">Aucun Pokémon</p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl p-6 text-center text-gray-600">Commence à taper un nom...</div>
+            <div className="space-y-3">
+              {selectedPlayer.pokemon.map((poke) => (
+                <div key={poke.id} className="bg-gray-800 rounded-2xl p-4 border border-gray-700 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={getPokemonImageUrl(poke.pokeId)}
+                      alt={poke.name}
+                      className="w-12 h-12 object-contain"
+                    />
+                    <div>
+                      <h3 className="font-bold text-white">{poke.name}</h3>
+                      <p className="text-gray-400 text-sm">Niveau {poke.level}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setCurrentTab('editPokemon');
+                        setSelectedPlayer({...selectedPlayer, editingPokemon: poke});
+                      }}
+                      className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => deletePokemonFromPlayer(selectedPlayer.id, poke.id)}
+                      className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
-    );
-  }
+    )
+  );
 
-  // EDIT POKEMON VIEW
-  if (currentView === 'editPokemon' && selectedPlayer?.editingPokemon) {
-    const poke = selectedPlayer.editingPokemon;
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-500 via-pink-400 to-red-500 p-4">
-        <div className="max-w-md mx-auto">
+  // ADD POKEMON TAB
+  const renderAddPokemon = () => (
+    <div className="pb-24">
+      <div className="bg-gray-900 pt-6 pb-6 px-4 flex justify-between items-start sticky top-0">
+        <button
+          onClick={() => setCurrentTab('playerDetail')}
+          className="text-gray-400 hover:text-white"
+        >
+          ←
+        </button>
+        <h1 className="text-2xl font-black text-white">Ajouter un Pokémon</h1>
+        <div />
+      </div>
+
+      <div className="px-4 mt-6">
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Chercher un Pokémon..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              searchPokemon(e.target.value);
+            }}
+            className="w-full bg-gray-800 text-white rounded-xl px-4 py-3 pl-12 focus:outline-none focus:ring-2 focus:ring-yellow-400 border border-gray-700"
+            autoFocus
+          />
+        </div>
+
+        {searchLoading ? (
+          <div className="text-center text-gray-400">
+            <Loader className="animate-spin mx-auto mb-2" />
+            <p>Recherche en cours...</p>
+          </div>
+        ) : searchTerm && searchResults.length === 0 ? (
+          <div className="bg-gray-800 rounded-2xl p-6 text-center border border-gray-700">
+            <p className="text-gray-400">Aucun résultat trouvé</p>
+          </div>
+        ) : searchTerm ? (
+          <div className="space-y-2">
+            {searchResults.map((poke) => (
+              <button
+                key={poke.pokeId}
+                onClick={() => {
+                  addPokemonToPlayer(selectedPlayer.id, poke);
+                  setCurrentTab('playerDetail');
+                  setSearchTerm('');
+                }}
+                className="w-full bg-gray-800 rounded-xl p-3 hover:bg-gray-700 transition flex items-center gap-3 border border-gray-700"
+              >
+                <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-10 h-10 object-contain" />
+                <div className="flex-1 text-left">
+                  <h3 className="font-bold text-white">{poke.name}</h3>
+                  <p className="text-xs text-gray-400">#{poke.pokeId}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-gray-800 rounded-2xl p-6 text-center border border-gray-700">
+            <p className="text-gray-400">Commence à taper un nom...</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // EDIT POKEMON TAB
+  const renderEditPokemon = () => (
+    selectedPlayer?.editingPokemon && (
+      <div className="pb-24">
+        <div className="bg-gray-900 pt-6 pb-6 px-4 flex justify-between items-start sticky top-0">
           <button
             onClick={() => {
-              setCurrentView('profile');
+              setCurrentTab('playerDetail');
               setSelectedPlayer({...selectedPlayer, editingPokemon: null});
             }}
-            className="text-white font-bold mb-6"
+            className="text-gray-400 hover:text-white"
           >
-            ← Retour
+            ←
           </button>
+          <h1 className="text-2xl font-black text-white">Modifier Pokémon</h1>
+          <div />
+        </div>
 
-          <div className="bg-white rounded-3xl p-6 shadow-2xl">
+        <div className="px-4 mt-6">
+          <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
             <div className="text-center mb-6">
-              <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-24 h-24 mx-auto" />
-              <h1 className="text-3xl font-black text-gray-800 mt-4">{poke.name}</h1>
+              <img src={getPokemonImageUrl(selectedPlayer.editingPokemon.pokeId)} alt={selectedPlayer.editingPokemon.name} className="w-20 h-20 mx-auto" />
+              <h1 className="text-2xl font-black text-white mt-4">{selectedPlayer.editingPokemon.name}</h1>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-gray-700 font-bold">Niveau</label>
+                <label className="text-gray-400 font-bold text-sm">Niveau</label>
                 <input
                   type="number"
-                  value={poke.level}
+                  value={selectedPlayer.editingPokemon.level}
                   onChange={(e) => {
-                    const updated = {...poke, level: parseInt(e.target.value) || 1};
-                    setSelectedPlayer({...selectedPlayer, editingPokemon: updated});
+                    const poke = selectedPlayer.editingPokemon;
+                    setSelectedPlayer({...selectedPlayer, editingPokemon: {...poke, level: parseInt(e.target.value) || 1}});
                   }}
-                  className="w-full border-2 border-gray-300 rounded-xl px-4 py-2"
+                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 mt-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                   min="1" max="100"
                 />
               </div>
@@ -604,15 +648,15 @@ const PokemonBattleLogger = () => {
               <div className="grid grid-cols-2 gap-3">
                 {['hp', 'atk', 'def', 'spa', 'spd', 'spe'].map((stat) => (
                   <div key={stat}>
-                    <label className="text-gray-700 font-bold text-sm">{stat.toUpperCase()}</label>
+                    <label className="text-gray-400 font-bold text-sm">{stat.toUpperCase()}</label>
                     <input
                       type="number"
-                      value={poke[stat]}
+                      value={selectedPlayer.editingPokemon[stat]}
                       onChange={(e) => {
-                        const updated = {...poke, [stat]: parseInt(e.target.value) || 0};
-                        setSelectedPlayer({...selectedPlayer, editingPokemon: updated});
+                        const poke = selectedPlayer.editingPokemon;
+                        setSelectedPlayer({...selectedPlayer, editingPokemon: {...poke, [stat]: parseInt(e.target.value) || 0}});
                       }}
-                      className="w-full border-2 border-gray-300 rounded-xl px-2 py-1 text-sm"
+                      className="w-full bg-gray-700 text-white rounded-lg px-2 py-1 mt-2 text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                     />
                   </div>
                 ))}
@@ -620,312 +664,282 @@ const PokemonBattleLogger = () => {
 
               <button
                 onClick={() => {
-                  updatePokemonInPlayer(selectedPlayer.id, poke.id, poke);
-                  setCurrentView('profile');
+                  updatePokemonInPlayer(selectedPlayer.id, selectedPlayer.editingPokemon.id, selectedPlayer.editingPokemon);
+                  setCurrentTab('playerDetail');
                   setSelectedPlayer({...selectedPlayer, editingPokemon: null});
                 }}
-                className="w-full bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 flex justify-center gap-2"
+                className="w-full bg-yellow-400 text-black py-3 rounded-lg font-black hover:bg-yellow-500 mt-6"
               >
-                <Save size={20} /> Sauvegarder
+                Sauvegarder
               </button>
             </div>
           </div>
         </div>
       </div>
-    );
-  }
+    )
+  );
 
-  // BATTLES VIEW - Sélectionner joueurs et mode
-  if (currentView === 'battles') {
-    const [step, setStep] = useState(1); // 1 = mode, 2 = joueurs
-    const [selectedPlayersForBattle, setSelectedPlayersForBattle] = useState([]);
-
-    if (step === 1) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-red-500 via-yellow-400 to-blue-500 p-4">
-          <div className="max-w-md mx-auto">
-            <button
-              onClick={() => setCurrentView('home')}
-              className="text-white font-bold mb-6 flex items-center gap-2"
-            >
-              ← Retour
-            </button>
-
-            <h1 className="text-3xl font-black text-white text-center mb-6">Mode de Combat</h1>
-
-            <div className="space-y-4">
-              <button
-                onClick={() => {
-                  setBattleMode('1v1');
-                  setStep(2);
-                }}
-                className="w-full bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition text-center"
-              >
-                <div className="text-4xl mb-2">⚔️</div>
-                <h2 className="text-2xl font-black text-gray-800">1v1</h2>
-                <p className="text-gray-600 text-sm">3 Pokémon par joueur</p>
-              </button>
-
-              <button
-                onClick={() => {
-                  setBattleMode('2v2');
-                  setStep(2);
-                }}
-                className="w-full bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition text-center"
-              >
-                <div className="text-4xl mb-2">⚔️⚔️</div>
-                <h2 className="text-2xl font-black text-gray-800">2v2</h2>
-                <p className="text-gray-600 text-sm">4 Pokémon par joueur</p>
-              </button>
-            </div>
-          </div>
+  // BATTLES TAB
+  const renderBattles = () => (
+    <div className="pb-24">
+      <div className="bg-gray-900 pt-8 pb-6 px-4 flex justify-between items-center sticky top-0">
+        <div>
+          <h1 className="text-2xl font-black text-white">Combats</h1>
+          <p className="text-gray-400 text-sm">{battles.length} combats</p>
         </div>
-      );
-    }
+        <button
+          onClick={() => setShowNewBattleForm(true)}
+          className="bg-yellow-400 text-black px-4 py-2 rounded-full font-black hover:bg-yellow-500"
+        >
+          + Nouveau
+        </button>
+      </div>
 
-    if (step === 2) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-500 via-pink-400 to-red-500 p-4">
-          <div className="max-w-md mx-auto">
-            <button
-              onClick={() => setStep(1)}
-              className="text-white font-bold mb-6 flex items-center gap-2"
-            >
-              ← Retour
-            </button>
-
-            <h1 className="text-3xl font-black text-white text-center mb-6">
-              Sélectionner {battleMode === '1v1' ? '2' : '4'} joueurs
-            </h1>
-
-            <div className="space-y-3">
-              {players.map((player) => (
-                <button
-                  key={player.id}
-                  onClick={() => {
-                    if (selectedPlayersForBattle.find(p => p.id === player.id)) {
-                      setSelectedPlayersForBattle(selectedPlayersForBattle.filter(p => p.id !== player.id));
-                    } else {
-                      const maxPlayers = battleMode === '1v1' ? 2 : 4;
-                      if (selectedPlayersForBattle.length < maxPlayers) {
-                        setSelectedPlayersForBattle([...selectedPlayersForBattle, player]);
-                      }
-                    }
-                  }}
-                  className={`w-full rounded-xl p-4 shadow-md hover:shadow-lg transition text-left font-bold ${
-                    selectedPlayersForBattle.find(p => p.id === player.id)
-                      ? 'bg-green-400 text-white'
-                      : 'bg-white text-gray-800'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg">{player.name}</h3>
-                      <p className="text-sm">{(player.pokemon || []).length} Pokémon</p>
-                    </div>
-                    {selectedPlayersForBattle.find(p => p.id === player.id) && (
-                      <div className="text-2xl">✓</div>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => {
-                const maxPlayers = battleMode === '1v1' ? 2 : 4;
-                if (selectedPlayersForBattle.length === maxPlayers) {
-                  startBattle(battleMode, selectedPlayersForBattle);
-                } else {
-                  alert(`Veuillez sélectionner ${maxPlayers} joueurs`);
-                }
-              }}
-              disabled={battleMode === '1v1' ? selectedPlayersForBattle.length !== 2 : selectedPlayersForBattle.length !== 4}
-              className="w-full mt-6 bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 disabled:bg-gray-400"
-            >
-              Commencer le Combat
-            </button>
+      <div className="px-4 mt-6 space-y-4">
+        {battles.length === 0 ? (
+          <div className="bg-gray-800 rounded-2xl p-6 text-center border border-gray-700">
+            <p className="text-gray-400">Aucun combat enregistré</p>
           </div>
-        </div>
-      );
-    }
-  }
-
-  // SELECT TEAMS VIEW
-  if (currentView === 'selectTeams') {
-    const pokemonCount = battleMode === '1v1' ? 3 : 4;
-
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-500 via-orange-400 to-red-500 p-4">
-        <div className="max-w-md mx-auto">
-          <button
-            onClick={() => {
-              setCurrentView('battles');
-              setBattleMode(null);
-              setBattlePlayers([]);
-            }}
-            className="text-white font-bold mb-6 flex items-center gap-2"
-          >
-            ← Retour
-          </button>
-
-          <h1 className="text-3xl font-black text-white text-center mb-6">Sélectionner les Équipes</h1>
-
-          <div className="space-y-6">
-            {battlePlayers.map((player) => (
-              <div key={player.id} className="bg-white rounded-3xl p-6 shadow-2xl">
-                <h2 className="text-xl font-black text-gray-800 mb-4">{player.name}</h2>
-                <p className="text-sm text-gray-600 mb-4">Choisis {pokemonCount} Pokémon</p>
-
-                <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
-                  {(player.pokemon || []).map((poke) => (
-                    <button
-                      key={poke.id}
-                      onClick={() => {
-                        const current = selectedTeams[player.id] || [];
-                        if (current.find(p => p.id === poke.id)) {
-                          setSelectedTeams({
-                            ...selectedTeams,
-                            [player.id]: current.filter(p => p.id !== poke.id),
-                          });
-                        } else {
-                          if (current.length < pokemonCount) {
-                            setSelectedTeams({
-                              ...selectedTeams,
-                              [player.id]: [...current, poke],
-                            });
-                          }
-                        }
-                      }}
-                      className={`w-full rounded-xl p-3 flex items-center gap-3 text-left ${
-                        (selectedTeams[player.id] || []).find(p => p.id === poke.id)
-                          ? 'bg-green-400 text-white font-bold'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      <img
-                        src={getPokemonImageUrl(poke.pokeId)}
-                        alt={poke.name}
-                        className="w-10 h-10 object-contain"
-                      />
-                      <div>
-                        <h3 className="font-bold">{poke.name}</h3>
-                        <p className="text-xs">Niv. {poke.level}</p>
-                      </div>
-                      {(selectedTeams[player.id] || []).find(p => p.id === poke.id) && (
-                        <div className="ml-auto text-lg">✓</div>
-                      )}
-                    </button>
-                  ))}
+        ) : (
+          battles.map((battle) => (
+            <div key={battle.id} className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-yellow-400 text-sm font-bold">{battle.format}</p>
+                <p className="text-gray-400 text-sm">{battle.date}</p>
+              </div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex-1">
+                  <p className={`font-bold ${battle.winner === 'player1' ? 'text-yellow-400' : 'text-gray-400'}`}>
+                    {battle.player1Name}
+                  </p>
                 </div>
-
-                <p className="text-sm text-gray-600">
-                  Sélectionnés: {(selectedTeams[player.id] || []).length}/{pokemonCount}
+                <p className="text-gray-400 mx-4">vs</p>
+                <div className="flex-1 text-right">
+                  <p className={`font-bold ${battle.winner === 'player2' ? 'text-yellow-400' : 'text-gray-400'}`}>
+                    {battle.player2Name}
+                  </p>
+                </div>
+              </div>
+              {battle.winner && (
+                <p className="text-yellow-400 text-sm text-center font-bold">
+                  🏆 {battle.winner === 'player1' ? battle.player1Name : battle.player2Name} a gagné
                 </p>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {showNewBattleForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end z-50">
+          <div className="w-full bg-gray-800 rounded-t-3xl p-6 border-t border-gray-700 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-black text-white mb-4">Nouveau combat</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-gray-400 font-bold text-sm">FORMAT</label>
+                <select
+                  value={newBattle.format}
+                  onChange={(e) => setNewBattle({...newBattle, format: e.target.value})}
+                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 mt-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                >
+                  <option value="1v1">1v1 (3 Pokémon)</option>
+                  <option value="2v2">2v2 (4 Pokémon)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-gray-400 font-bold text-sm">DATE</label>
+                <input
+                  type="date"
+                  value={newBattle.date}
+                  onChange={(e) => setNewBattle({...newBattle, date: e.target.value})}
+                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 mt-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-yellow-400 font-bold text-sm">JOUEUR 1</label>
+                <select
+                  value={newBattle.player1 || ''}
+                  onChange={(e) => setNewBattle({...newBattle, player1: e.target.value ? parseInt(e.target.value) : null})}
+                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 mt-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                >
+                  <option value="">Choisir joueur</option>
+                  {players.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-red-400 font-bold text-sm">JOUEUR 2</label>
+                <select
+                  value={newBattle.player2 || ''}
+                  onChange={(e) => setNewBattle({...newBattle, player2: e.target.value ? parseInt(e.target.value) : null})}
+                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 mt-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                >
+                  <option value="">Choisir joueur</option>
+                  {players.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-gray-400 font-bold text-sm">GAGNANT</label>
+                <select
+                  value={newBattle.winner || ''}
+                  onChange={(e) => setNewBattle({...newBattle, winner: e.target.value})}
+                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 mt-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                >
+                  <option value="">Choisir le gagnant</option>
+                  <option value="player1">{newBattle.player1 ? players.find(p => p.id === newBattle.player1)?.name : 'Joueur 1'}</option>
+                  <option value="player2">{newBattle.player2 ? players.find(p => p.id === newBattle.player2)?.name : 'Joueur 2'}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-gray-400 font-bold text-sm">NOTES</label>
+                <textarea
+                  value={newBattle.notes}
+                  onChange={(e) => setNewBattle({...newBattle, notes: e.target.value})}
+                  placeholder="Notes sur le combat..."
+                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 mt-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  rows="3"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowNewBattleForm(false);
+                    setNewBattle({
+                      format: '1v1',
+                      player1: null,
+                      player2: null,
+                      date: new Date().toISOString().split('T')[0],
+                      notes: '',
+                      winner: null,
+                    });
+                  }}
+                  className="flex-1 bg-gray-700 text-white py-3 rounded-lg font-bold"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={recordBattle}
+                  className="flex-1 bg-yellow-400 text-black py-3 rounded-lg font-black hover:bg-yellow-500"
+                >
+                  Enregistrer le combat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // TEAMS TAB
+  const renderTeams = () => (
+    <div className="pb-24">
+      <div className="bg-gray-900 pt-8 pb-6 px-4 flex justify-between items-center sticky top-0">
+        <div>
+          <h1 className="text-2xl font-black text-white">Équipes</h1>
+          <p className="text-gray-400 text-sm">{teams.length} équipes</p>
+        </div>
+        <button
+          className="bg-yellow-400 text-black px-4 py-2 rounded-full font-black hover:bg-yellow-500"
+        >
+          + Créer
+        </button>
+      </div>
+
+      <div className="px-4 mt-6">
+        {teams.length === 0 ? (
+          <div className="bg-gray-800 rounded-2xl p-6 text-center border border-gray-700">
+            <p className="text-gray-400">Aucune équipe créée</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {teams.map((team) => (
+              <div key={team.id} className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
+                <h3 className="font-black text-white">{team.name}</h3>
+                <p className="text-gray-400 text-sm">{team.owner} · {team.pokemon.length} Pokémon</p>
               </div>
             ))}
           </div>
-
-          <button
-            onClick={confirmTeams}
-            className="w-full mt-6 bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600"
-          >
-            Commencer le Combat
-          </button>
-        </div>
+        )}
       </div>
-    );
-  }
+    </div>
+  );
 
-  // BATTLE VIEW
-  if (currentView === 'battle' && battleState) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-600 via-orange-500 to-yellow-400 p-4">
-        <div className="max-w-md mx-auto">
-          <h1 className="text-3xl font-black text-white text-center mb-6">Combat en cours</h1>
+  return (
+    <div className="bg-gray-900 min-h-screen text-white">
+      {/* Content */}
+      {currentTab === 'home' && renderHome()}
+      {currentTab === 'players' && renderPlayers()}
+      {currentTab === 'playerDetail' && renderPlayerDetail()}
+      {currentTab === 'addPokemon' && renderAddPokemon()}
+      {currentTab === 'editPokemon' && renderEditPokemon()}
+      {currentTab === 'battles' && renderBattles()}
+      {currentTab === 'teams' && renderTeams()}
 
-          <div className="grid grid-cols-2 gap-4">
-            {battleState.players.map((player, idx) => {
-              const remaining = player.team.filter(p => !player.eliminated.includes(p.id));
-              return (
-                <div key={player.id} className="bg-white rounded-2xl p-4 shadow-2xl">
-                  <h2 className="font-black text-gray-800 mb-4">{player.name}</h2>
-                  <div className="space-y-2">
-                    {player.team.map((poke) => (
-                      <button
-                        key={poke.id}
-                        onClick={() => {
-                          if (!player.eliminated.includes(poke.id)) {
-                            eliminatePokemon(idx, poke.id);
-                          }
-                        }}
-                        disabled={player.eliminated.includes(poke.id)}
-                        className={`w-full rounded-lg p-2 text-sm font-bold transition ${
-                          player.eliminated.includes(poke.id)
-                            ? 'bg-gray-300 text-gray-600 line-through'
-                            : 'bg-blue-500 text-white hover:bg-blue-600'
-                        }`}
-                      >
-                        {poke.name}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-600 mt-4 font-bold">
-                    Restants: {remaining.length}/{player.team.length}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 flex justify-around items-center px-4 py-3 z-40">
+        <button
+          onClick={() => setCurrentTab('home')}
+          className={`flex flex-col items-center gap-1 py-2 px-4 rounded-2xl transition ${
+            currentTab === 'home' ? 'text-yellow-400' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Home size={24} />
+          <span className="text-xs font-bold">Accueil</span>
+        </button>
+
+        <button
+          onClick={() => setCurrentTab('players')}
+          className={`flex flex-col items-center gap-1 py-2 px-4 rounded-2xl transition ${
+            currentTab === 'players' || currentTab === 'playerDetail' || currentTab === 'addPokemon' || currentTab === 'editPokemon'
+              ? 'text-yellow-400 border border-yellow-400'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Users size={24} />
+          <span className="text-xs font-bold">Joueurs</span>
+        </button>
+
+        <button
+          onClick={() => setShowNewBattleForm(true)}
+          className="flex flex-col items-center gap-1 py-2 px-4 rounded-2xl bg-yellow-400 text-black font-bold -mt-6"
+        >
+          <Plus size={28} />
+          <span className="text-xs">Combat</span>
+        </button>
+
+        <button
+          onClick={() => setCurrentTab('battles')}
+          className={`flex flex-col items-center gap-1 py-2 px-4 rounded-2xl transition ${
+            currentTab === 'battles' ? 'text-yellow-400' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Zap size={24} />
+          <span className="text-xs font-bold">Combats</span>
+        </button>
+
+        <button
+          onClick={() => setCurrentTab('teams')}
+          className={`flex flex-col items-center gap-1 py-2 px-4 rounded-2xl transition ${
+            currentTab === 'teams' ? 'text-yellow-400 border border-yellow-400' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Shield size={24} />
+          <span className="text-xs font-bold">Équipes</span>
+        </button>
       </div>
-    );
-  }
-
-  // BATTLE RESULT VIEW
-  if (currentView === 'battleResult' && battleState && battleState.winner !== null) {
-    const winner = battleState.players[battleState.winner];
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-500 via-emerald-400 to-teal-500 p-4">
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-3xl p-8 text-center shadow-2xl">
-            <div className="text-6xl mb-4">🏆</div>
-            <h1 className="text-4xl font-black text-gray-800 mb-2">{winner.name}</h1>
-            <p className="text-gray-600 mb-6">Remporte la victoire!</p>
-
-            <div className="bg-gray-100 rounded-xl p-4 mb-6">
-              <h2 className="font-black text-gray-800 mb-4">Résumé du Combat</h2>
-              {battleState.players.map((player, idx) => {
-                const eliminated = player.eliminated.length;
-                const total = player.team.length;
-                return (
-                  <div key={player.id} className="mb-3">
-                    <p className="font-bold text-gray-800">{player.name}</p>
-                    <p className="text-sm text-gray-600">{total - eliminated} Pokémon restants | {eliminated} éliminés</p>
-                  </div>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => {
-                setCurrentView('home');
-                setBattleState(null);
-                setBattleMode(null);
-                setBattlePlayers([]);
-                setSelectedTeams({});
-              }}
-              className="w-full bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600"
-            >
-              Retour à l'Accueil
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 };
 
 export default PokemonBattleLogger;
