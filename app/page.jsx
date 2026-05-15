@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, Plus, Trash2, Search, X } from 'lucide-react';
 
 const PokemonBattleLogger = () => {
@@ -11,7 +11,11 @@ const PokemonBattleLogger = () => {
   const [homeTab, setHomeTab] = useState('players');
   const [pokemonView, setPokemonView] = useState('grid');
   const [pokemonSearch, setPokemonSearch] = useState('');
+  const [allPokemon, setAllPokemon] = useState([]);
+  const [loadingPokemon, setLoadingPokemon] = useState(true);
+  const [pokemonNamesCache, setPokemonNamesCache] = useState({});
 
+  // Charger les données du localStorage au démarrage
   useEffect(() => {
     const saved = localStorage.getItem('pokebattle_players');
     if (saved) {
@@ -23,6 +27,88 @@ const PokemonBattleLogger = () => {
     }
   }, []);
 
+  // Charger les noms français depuis un fichier CSV/JSON externe ou cache local
+  useEffect(() => {
+    const loadPokemonNames = async () => {
+      try {
+        setLoadingPokemon(true);
+        
+        // Charger la liste basique depuis PokeAPI (rapide)
+        const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
+        const data = await response.json();
+        
+        // Créer une liste basique avec juste l'ID et le nom anglais
+        const basicList = data.results.map((poke, index) => ({
+          id: index + 1,
+          name: poke.name,
+          pokeId: index + 1,
+          types: ['normal'],
+          stats: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
+        }));
+        
+        setAllPokemon(basicList);
+        
+        // Charger les noms français et stats en arrière-plan (sans bloquer)
+        loadPokemonDetails(basicList);
+      } catch (error) {
+        console.error('Erreur:', error);
+      } finally {
+        setLoadingPokemon(false);
+      }
+    };
+
+    loadPokemonNames();
+  }, []);
+
+  // Charger les détails (noms français + stats) en arrière-plan
+  const loadPokemonDetails = async (basicList) => {
+    const detailsMap = {};
+    
+    // Charger par batch de 20 pour ne pas surcharger
+    for (let i = 0; i < basicList.length; i += 20) {
+      const batch = basicList.slice(i, i + 20);
+      
+      await Promise.all(
+        batch.map(async (poke) => {
+          try {
+            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${poke.id}`);
+            const pokemonData = await res.json();
+            
+            const speciesRes = await fetch(pokemonData.species.url);
+            const speciesData = await speciesRes.json();
+            
+            const frenchName = speciesData.names.find(n => n.language.name === 'fr')?.name || poke.name;
+            
+            detailsMap[poke.id] = {
+              name: frenchName,
+              types: pokemonData.types.map(t => t.type.name),
+              stats: {
+                hp: pokemonData.stats[0]?.base_stat || 0,
+                atk: pokemonData.stats[1]?.base_stat || 0,
+                def: pokemonData.stats[2]?.base_stat || 0,
+                spa: pokemonData.stats[3]?.base_stat || 0,
+                spd: pokemonData.stats[4]?.base_stat || 0,
+                spe: pokemonData.stats[5]?.base_stat || 0,
+              }
+            };
+          } catch (e) {
+            console.error(`Erreur pour Pokémon ${poke.id}:`, e);
+          }
+        })
+      );
+    }
+    
+    // Mettre à jour la liste avec les détails
+    const updatedList = basicList.map(poke => ({
+      ...poke,
+      ...detailsMap[poke.id]
+    }));
+    
+    setAllPokemon(updatedList);
+    setPokemonNamesCache(detailsMap);
+  };
+
+  // Sauvegarder les données dans le localStorage à chaque changement
   useEffect(() => {
     localStorage.setItem('pokebattle_players', JSON.stringify(players));
   }, [players]);
@@ -55,32 +141,6 @@ const PokemonBattleLogger = () => {
   const getPokemonImageUrl = (id) => {
     return `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
   };
-
-  const allPokemon = [
-    { id: 'pikachu', name: 'Pikachu', pokeId: 25, types: ['electric'], stats: { hp: 35, atk: 55, def: 40, spa: 50, spd: 50, spe: 90 } },
-    { id: 'florizarre', name: 'Florizarre', pokeId: 3, types: ['grass', 'poison'], stats: { hp: 80, atk: 82, def: 83, spa: 100, spd: 100, spe: 80 } },
-    { id: 'dracaufeu', name: 'Dracaufeu', pokeId: 6, types: ['fire', 'flying'], stats: { hp: 78, atk: 84, def: 78, spa: 109, spd: 85, spe: 100 } },
-    { id: 'tortank', name: 'Tortank', pokeId: 9, types: ['water'], stats: { hp: 79, atk: 83, def: 100, spa: 83, spd: 100, spe: 78 } },
-    { id: 'dracolosse', name: 'Dracolosse', pokeId: 149, types: ['dragon', 'flying'], stats: { hp: 91, atk: 134, def: 95, spa: 100, spd: 100, spe: 80 } },
-    { id: 'alakazam', name: 'Alakazam', pokeId: 65, types: ['psychic'], stats: { hp: 55, atk: 50, def: 65, spa: 135, spd: 95, spe: 120 } },
-    { id: 'machamp', name: 'Machamp', pokeId: 68, types: ['fighting'], stats: { hp: 90, atk: 130, def: 80, spa: 65, spd: 85, spe: 55 } },
-    { id: 'golem', name: 'Golem', pokeId: 76, types: ['rock', 'ground'], stats: { hp: 80, atk: 120, def: 130, spa: 55, spd: 65, spe: 45 } },
-    { id: 'arcanin', name: 'Arcanin', pokeId: 59, types: ['fire'], stats: { hp: 90, atk: 110, def: 80, spa: 80, spd: 80, spe: 95 } },
-    { id: 'lokhlass', name: 'Lokhlass', pokeId: 131, types: ['water', 'ice'], stats: { hp: 130, atk: 85, def: 80, spa: 85, spd: 95, spe: 60 } },
-    { id: 'ectoplasma', name: 'Ectoplasma', pokeId: 94, types: ['ghost', 'poison'], stats: { hp: 45, atk: 50, def: 75, spa: 130, spd: 95, spe: 110 } },
-    { id: 'raichu', name: 'Raichu', pokeId: 26, types: ['electric'], stats: { hp: 60, atk: 90, def: 55, spa: 90, spd: 80, spe: 110 } },
-    { id: 'momolice', name: 'Momolice', pokeId: 461, types: ['dark', 'ice'], stats: { hp: 70, atk: 120, def: 65, spa: 45, spd: 85, spe: 125 } },
-    { id: 'garchomp', name: 'Garchomp', pokeId: 445, types: ['dragon', 'ground'], stats: { hp: 108, atk: 130, def: 95, spa: 80, spd: 85, spe: 102 } },
-    { id: 'flambusard', name: 'Flambusard', pokeId: 257, types: ['fire', 'fighting'], stats: { hp: 80, atk: 120, def: 72, spa: 110, spd: 90, spe: 80 } },
-    { id: 'rotomlavage', name: 'Rotom-Lavage', pokeId: 479, types: ['electric', 'water'], stats: { hp: 50, atk: 65, def: 107, spa: 105, spd: 107, spe: 86 } },
-    { id: 'heatran', name: 'Heatran', pokeId: 485, types: ['fire', 'steel'], stats: { hp: 91, atk: 90, def: 106, spa: 130, spd: 106, spe: 77 } },
-    { id: 'terrakium', name: 'Terrakium', pokeId: 645, types: ['ground', 'flying'], stats: { hp: 89, atk: 145, def: 90, spa: 105, spd: 80, spe: 91 } },
-    { id: 'incineroar', name: 'Incinéroar', pokeId: 727, types: ['fire', 'dark'], stats: { hp: 95, atk: 115, def: 90, spa: 80, spd: 90, spe: 72 } },
-    { id: 'corvailleur', name: 'Corvailleur', pokeId: 823, types: ['flying', 'steel'], stats: { hp: 98, atk: 87, def: 95, spa: 53, spd: 82, spe: 67 } },
-    { id: 'babimanta', name: 'Babimanta', pokeId: 861, types: ['dark', 'fairy'], stats: { hp: 120, atk: 130, def: 90, spa: 80, spd: 110, spe: 45 } },
-    { id: 'manosteele', name: 'Manosteele', pokeId: 1016, types: ['fighting', 'electric'], stats: { hp: 58, atk: 134, def: 106, spa: 103, spd: 85, spe: 104 } },
-    { id: 'pecharunt', name: 'Pecharunt', pokeId: 1025, types: ['poison', 'ghost'], stats: { hp: 70, atk: 110, def: 70, spa: 130, spd: 100, spe: 110 } },
-  ];
 
   const TypeSticker = ({ type }) => {
     const typeData = pokemonTypes[type] || { name: type, color: '#A8A878' };
@@ -125,7 +185,7 @@ const PokemonBattleLogger = () => {
 
   const renderPokemonGrid = () => (
     <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-      {filteredPokemon.map((poke) => (
+      {filteredPokemon.slice(0, 50).map((poke) => (
         <div
           key={poke.id}
           className="bg-white rounded-xl p-3 shadow-md hover:shadow-lg transition"
@@ -135,22 +195,22 @@ const PokemonBattleLogger = () => {
           </div>
           <h3 className="font-bold text-gray-800 text-sm mb-1 text-center">{poke.name}</h3>
           <div className="flex gap-1 mb-2 flex-wrap justify-center">
-            {poke.types.map((type) => (
+            {poke.types?.map((type) => (
               <TypeSticker key={type} type={type} />
             ))}
           </div>
           <div className="text-xs text-gray-600 grid grid-cols-3 gap-1">
             <div className="bg-gray-50 p-1 rounded text-center">
               <div className="font-bold">HP</div>
-              <div>{poke.stats.hp}</div>
+              <div>{poke.stats?.hp || '-'}</div>
             </div>
             <div className="bg-gray-50 p-1 rounded text-center">
               <div className="font-bold">ATK</div>
-              <div>{poke.stats.atk}</div>
+              <div>{poke.stats?.atk || '-'}</div>
             </div>
             <div className="bg-gray-50 p-1 rounded text-center">
               <div className="font-bold">DEF</div>
-              <div>{poke.stats.def}</div>
+              <div>{poke.stats?.def || '-'}</div>
             </div>
           </div>
         </div>
@@ -160,7 +220,7 @@ const PokemonBattleLogger = () => {
 
   const renderPokemonList = () => (
     <div className="space-y-2 max-h-96 overflow-y-auto">
-      {filteredPokemon.map((poke) => (
+      {filteredPokemon.slice(0, 50).map((poke) => (
         <div
           key={poke.id}
           className="bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition flex items-center gap-3"
@@ -171,7 +231,7 @@ const PokemonBattleLogger = () => {
           <div className="flex-1">
             <h3 className="font-bold text-gray-800">{poke.name}</h3>
             <div className="flex gap-1 flex-wrap">
-              {poke.types.map((type) => (
+              {poke.types?.map((type) => (
                 <TypeSticker key={type} type={type} />
               ))}
             </div>
@@ -272,62 +332,68 @@ const PokemonBattleLogger = () => {
             ) : (
               <div className="space-y-3">
                 <p className="text-white text-sm font-bold text-center mb-3">
-                  {allPokemon.length} Pokémon Champions disponibles
+                  {allPokemon.length > 0 
+                    ? `${allPokemon.length} Pokémon Champions disponibles` 
+                    : '⏳ Chargement...'}
                 </p>
 
-                <div className="relative mb-3">
-                  <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-                  <input
-                    type="text"
-                    id="pokemon-search"
-                    name="pokemon-search"
-                    placeholder="Chercher un Pokémon..."
-                    value={pokemonSearch}
-                    onChange={(e) => setPokemonSearch(e.target.value)}
-                    className="w-full border-2 border-white rounded-xl px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-yellow-300 text-sm bg-white text-gray-800"
-                    autoComplete="off"
-                  />
-                  {pokemonSearch && (
-                    <button
-                      onClick={() => setPokemonSearch('')}
-                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                    >
-                      <X size={18} />
-                    </button>
-                  )}
-                </div>
+                {allPokemon.length > 0 && (
+                  <>
+                    <div className="relative mb-3">
+                      <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                      <input
+                        type="text"
+                        id="pokemon-search"
+                        name="pokemon-search"
+                        placeholder="Chercher un Pokémon..."
+                        value={pokemonSearch}
+                        onChange={(e) => setPokemonSearch(e.target.value)}
+                        className="w-full border-2 border-white rounded-xl px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-yellow-300 text-sm bg-white text-gray-800"
+                        autoComplete="off"
+                      />
+                      {pokemonSearch && (
+                        <button
+                          onClick={() => setPokemonSearch('')}
+                          className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                        >
+                          <X size={18} />
+                        </button>
+                      )}
+                    </div>
 
-                <div className="flex gap-2 mb-3">
-                  <button
-                    onClick={() => setPokemonView('grid')}
-                    className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
-                      pokemonView === 'grid'
-                        ? 'bg-white text-red-500'
-                        : 'bg-white bg-opacity-50 text-white hover:bg-opacity-70'
-                    }`}
-                  >
-                    ⊞ Grille
-                  </button>
-                  <button
-                    onClick={() => setPokemonView('list')}
-                    className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
-                      pokemonView === 'list'
-                        ? 'bg-white text-red-500'
-                        : 'bg-white bg-opacity-50 text-white hover:bg-opacity-70'
-                    }`}
-                  >
-                    ≡ Liste
-                  </button>
-                </div>
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        onClick={() => setPokemonView('grid')}
+                        className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
+                          pokemonView === 'grid'
+                            ? 'bg-white text-red-500'
+                            : 'bg-white bg-opacity-50 text-white hover:bg-opacity-70'
+                        }`}
+                      >
+                        ⊞ Grille
+                      </button>
+                      <button
+                        onClick={() => setPokemonView('list')}
+                        className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${
+                          pokemonView === 'list'
+                            ? 'bg-white text-red-500'
+                            : 'bg-white bg-opacity-50 text-white hover:bg-opacity-70'
+                        }`}
+                      >
+                        ≡ Liste
+                      </button>
+                    </div>
 
-                {filteredPokemon.length === 0 ? (
-                  <div className="bg-white rounded-xl p-6 text-center">
-                    <p className="text-gray-600">Aucun Pokémon trouvé</p>
-                  </div>
-                ) : pokemonView === 'grid' ? (
-                  renderPokemonGrid()
-                ) : (
-                  renderPokemonList()
+                    {filteredPokemon.length === 0 ? (
+                      <div className="bg-white rounded-xl p-6 text-center">
+                        <p className="text-gray-600">Aucun Pokémon trouvé</p>
+                      </div>
+                    ) : pokemonView === 'grid' ? (
+                      renderPokemonGrid()
+                    ) : (
+                      renderPokemonList()
+                    )}
+                  </>
                 )}
               </div>
             )}
