@@ -424,7 +424,7 @@ const PokemonBattleLogger = () => {
           <div className="flex gap-2">
             {selectionMode === 'players' ? (
               <>
-                <button onClick={() => { setSelectionMode(null); setSelectedItems([]); }} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>Annuler</button>
+                <button onClick={() => { setSelectionMode(null); setSelectedItems([]); }} className={`border-2 ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-600' : 'border-gray-300 text-gray-600 hover:bg-gray-100'} px-3 py-1 rounded-full font-bold text-sm transition`}>Annuler</button>
                 <button onClick={() => setDeletingSelected(true)} disabled={selectedItems.length === 0} className="bg-red-500 disabled:opacity-50 text-white px-3 py-2 rounded-full font-bold text-sm">🗑️ Supprimer</button>
               </>
             ) : (
@@ -441,7 +441,7 @@ const PokemonBattleLogger = () => {
         {selectionMode === 'players' && (
           <div className="flex gap-2 mt-4">
             <button onClick={() => selectAllItems(players)} className="bg-blue-500 text-white px-3 py-1 rounded-full font-bold text-xs">Tout sélectionner</button>
-            <button onClick={deselectAllItems} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-1 rounded-full font-bold text-xs`}>Tout désélectionner</button>
+            <button onClick={deselectAllItems} className={`border-2 ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-600' : 'border-gray-300 text-gray-600 hover:bg-gray-100'} px-3 py-1 rounded-full font-bold text-xs transition`}>Tout désélectionner</button>
           </div>
         )}
       </div>
@@ -590,7 +590,7 @@ const PokemonBattleLogger = () => {
           <div className="flex gap-2">
             {selectionMode === 'teams' ? (
               <>
-                <button onClick={() => { setSelectionMode(null); setSelectedItems([]); }} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>Annuler</button>
+                <button onClick={() => { setSelectionMode(null); setSelectedItems([]); }} className={`border-2 ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-600' : 'border-gray-300 text-gray-600 hover:bg-gray-100'} px-3 py-1 rounded-full font-bold text-sm transition`}>Annuler</button>
                 <button onClick={() => setDeletingSelected(true)} disabled={selectedItems.length === 0} className="bg-red-500 disabled:opacity-50 text-white px-3 py-2 rounded-full font-bold text-sm">🗑️ Supprimer</button>
               </>
             ) : (
@@ -607,7 +607,7 @@ const PokemonBattleLogger = () => {
         {selectionMode === 'teams' && (
           <div className="flex gap-2 mt-4">
             <button onClick={() => selectAllItems(teams)} className="bg-blue-500 text-white px-3 py-1 rounded-full font-bold text-xs">Tout sélectionner</button>
-            <button onClick={deselectAllItems} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-1 rounded-full font-bold text-xs`}>Tout désélectionner</button>
+            <button onClick={deselectAllItems} className={`border-2 ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-600' : 'border-gray-300 text-gray-600 hover:bg-gray-100'} px-3 py-1 rounded-full font-bold text-xs transition`}>Tout désélectionner</button>
           </div>
         )}
       </div>
