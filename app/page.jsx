@@ -430,7 +430,9 @@ const PokemonBattleLogger = () => {
             ) : (
               <>
                 <button onClick={() => setShowNewPlayerForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">+ Ajouter</button>
-                <button onClick={() => setSelectionMode('players')} disabled={players.length === 0} className={`${players.length === 0 ? 'opacity-50 cursor-not-allowed' : ''} ${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>✓ Sélectionner</button>
+                {players.length > 0 && (
+                  <button onClick={() => setSelectionMode('players')} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>✓ Sélectionner</button>
+                )}
               </>
             )}
           </div>
@@ -581,7 +583,9 @@ const PokemonBattleLogger = () => {
             ) : (
               <>
                 <button onClick={() => setShowNewTeamForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">+ Créer</button>
-                <button onClick={() => setSelectionMode('teams')} disabled={teams.length === 0} className={`${teams.length === 0 ? 'opacity-50 cursor-not-allowed' : ''} ${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>✓ Sélectionner</button>
+                {teams.length > 0 && (
+                  <button onClick={() => setSelectionMode('teams')} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>✓ Sélectionner</button>
+                )}
               </>
             )}
           </div>
