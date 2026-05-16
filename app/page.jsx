@@ -431,7 +431,7 @@ const PokemonBattleLogger = () => {
               <>
                 <button onClick={() => setShowNewPlayerForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">+ Ajouter</button>
                 {players.length > 0 && (
-                  <button onClick={() => setSelectionMode('players')} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>✓ Sélectionner</button>
+                  <button onClick={() => setSelectionMode('players')} className="border-2 border-orange-500 text-orange-500 px-4 py-1 rounded-full font-bold text-sm hover:bg-orange-50 transition">✓ Sélectionner</button>
                 )}
               </>
             )}
@@ -521,24 +521,37 @@ const PokemonBattleLogger = () => {
 
   const renderBattles = () => (
     <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
-      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder} flex justify-between`}>
-        <h1 className={`text-2xl font-black ${t.text}`}>Combats</h1>
-        <button onClick={() => setShowNewBattleForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-black">+ Nouveau</button>
+      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder}`}>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className={`text-2xl font-black ${t.text}`}>⚡ Combats</h1>
+          <button onClick={() => setShowNewBattleForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">+ Nouveau</button>
+        </div>
       </div>
       <div className="px-6 mt-6 pb-32 space-y-3">
-        {battles.map(b => {
-          const p1 = players.find(p => p.id === b.player1);
-          const p2 = players.find(p => p.id === b.player2);
-          return (
-            <button key={b.id} onClick={() => { setSelectedBattle(b); setCurrentTab('battleDetail'); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${t.border} text-left hover:shadow-md transition`}>
-              <p className="text-orange-500 text-sm font-bold">{b.format}</p>
-              <div className="flex justify-between mt-2">
-                <p className={`font-bold ${b.winner === 'player1' ? 'text-orange-500' : t.textSecondary}`}>{p1?.name}</p>
-                <p className={`font-bold ${b.winner === 'player2' ? 'text-orange-500' : t.textSecondary}`}>{p2?.name}</p>
-              </div>
-            </button>
-          );
-        })}
+        {battles.length === 0 ? (
+          <div className="h-screen flex items-center justify-center -mt-20">
+            <div className="text-center">
+              <p className={`text-6xl mb-4`}>⚡</p>
+              <h2 className={`text-2xl font-black ${t.text} mb-2`}>Aucun combat</h2>
+              <p className={`${t.textSecondary} mb-6`}>Enregistre ton premier combat pour commencer!</p>
+              <button onClick={() => setShowNewBattleForm(true)} className="bg-orange-500 text-white px-6 py-3 rounded-full font-black">+ Enregistrer un combat</button>
+            </div>
+          </div>
+        ) : (
+          battles.map(b => {
+            const p1 = players.find(p => p.id === b.player1);
+            const p2 = players.find(p => p.id === b.player2);
+            return (
+              <button key={b.id} onClick={() => { setSelectedBattle(b); setCurrentTab('battleDetail'); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${t.border} text-left hover:shadow-md transition`}>
+                <p className="text-orange-500 text-sm font-bold">{b.format}</p>
+                <div className="flex justify-between mt-2">
+                  <p className={`font-bold ${b.winner === 'player1' ? 'text-orange-500' : t.textSecondary}`}>{p1?.name}</p>
+                  <p className={`font-bold ${b.winner === 'player2' ? 'text-orange-500' : t.textSecondary}`}>{p2?.name}</p>
+                </div>
+              </button>
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -584,7 +597,7 @@ const PokemonBattleLogger = () => {
               <>
                 <button onClick={() => setShowNewTeamForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">+ Créer</button>
                 {teams.length > 0 && (
-                  <button onClick={() => setSelectionMode('teams')} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>✓ Sélectionner</button>
+                  <button onClick={() => setSelectionMode('teams')} className="border-2 border-orange-500 text-orange-500 px-4 py-1 rounded-full font-bold text-sm hover:bg-orange-50 transition">✓ Sélectionner</button>
                 )}
               </>
             )}
