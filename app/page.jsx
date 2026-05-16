@@ -792,7 +792,8 @@ const PokemonBattleLogger = () => {
                     <div className="mt-3 pt-3 border-t border-gray-600">
                       <p className={`text-xs font-bold ${t.textSecondary} mb-2`}>Pokémon du joueur</p>
                       <div className="flex gap-2">
-                        <button onClick={() => setBattlePokemonSelecting('player1')} className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm transition">👥 Depuis liste</button>
+                        <button onClick={() => setBattlePokemonSelecting('player1')} className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm transition">👥 Liste</button>
+                        <button onClick={() => setBattlePokemonSelecting('player1_team')} className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm transition">🛡️ Équipe</button>
                         <button onClick={() => setBattlePokemonSelecting('player1_new')} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-bold text-sm transition">➕ Ajouter</button>
                       </div>
                     </div>
@@ -809,7 +810,8 @@ const PokemonBattleLogger = () => {
                     <div className="mt-3 pt-3 border-t border-gray-600">
                       <p className={`text-xs font-bold ${t.textSecondary} mb-2`}>Pokémon du joueur</p>
                       <div className="flex gap-2">
-                        <button onClick={() => setBattlePokemonSelecting('player2')} className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm transition">👥 Depuis liste</button>
+                        <button onClick={() => setBattlePokemonSelecting('player2')} className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm transition">👥 Liste</button>
+                        <button onClick={() => setBattlePokemonSelecting('player2_team')} className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm transition">🛡️ Équipe</button>
                         <button onClick={() => setBattlePokemonSelecting('player2_new')} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-bold text-sm transition">➕ Ajouter</button>
                       </div>
                     </div>
@@ -1143,6 +1145,45 @@ const PokemonBattleLogger = () => {
                         }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
                           <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-12 h-12 object-contain" />
                           <p className={`font-black ${t.text}`}>{p.name}</p>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+            <div className={`border-t ${t.headerBorder} p-6 bg-gradient-to-t ${isDark ? 'from-gray-800' : 'from-gray-50'}`}>
+              <button onClick={() => setBattlePokemonSelecting(null)} className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Sélectionner Équipe pour Combat */}
+      {battlePokemonSelecting && battlePokemonSelecting.includes('_team') && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col overflow-hidden">
+          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col overflow-x-hidden`}>
+            <div className="p-6 flex-1 overflow-y-auto w-full box-border">
+              <h2 className={`text-2xl font-black ${t.text} mb-6`}>Sélectionner Équipe</h2>
+              {(() => {
+                const playerId = battlePokemonSelecting === 'player1_team' ? newBattleData.player1 : newBattleData.player2;
+                const playerTeams = teams.filter(t => t.ownerId === playerId);
+                
+                return (
+                  <div className="space-y-2">
+                    {playerTeams.length === 0 ? (
+                      <div className={`text-center ${t.textSecondary}`}>Aucune équipe pour ce joueur</div>
+                    ) : (
+                      playerTeams.map(team => (
+                        <button key={team.id} onClick={() => {
+                          // Ajouter tous les pokémon de l'équipe à la liste du joueur
+                          team.pokemon.forEach(p => {
+                            addPokemonToPlayer(playerId, { pokeId: p.pokeId, name: p.name });
+                          });
+                          setBattlePokemonSelecting(null);
+                        }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition border ${t.border} text-left`}>
+                          <p className={`font-black ${t.text}`}>{team.name}</p>
+                          <p className={`${t.textSecondary} text-sm`}>{team.format} · {team.pokemon.length} Pokémon</p>
                         </button>
                       ))
                     )}
