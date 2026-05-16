@@ -58,9 +58,30 @@ const PokemonBattleLogger = () => {
     const savedTeams = localStorage.getItem('pb_teams');
     const savedTheme = localStorage.getItem('pb_theme');
     
-    if (saved) setPlayers(JSON.parse(saved));
+    let loadedPlayers = saved ? JSON.parse(saved) : [];
+    let loadedTeams = savedTeams ? JSON.parse(savedTeams) : [];
+
+    // MIGRATION: Ajouter ownerId aux joueurs s'ils ne l'ont pas
+    loadedPlayers = loadedPlayers.map(p => ({
+      ...p,
+      ownerId: p.ownerId || p.id // ownerId = id du joueur
+    }));
+
+    // MIGRATION: Ajouter ownerId aux équipes s'ils ne l'ont pas (chercher le joueur par nom)
+    loadedTeams = loadedTeams.map(t => {
+      if (!t.ownerId && t.owner) {
+        const ownerPlayer = loadedPlayers.find(p => p.name === t.owner);
+        return {
+          ...t,
+          ownerId: ownerPlayer?.id || null
+        };
+      }
+      return t;
+    });
+
+    setPlayers(loadedPlayers);
     if (savedBattles) setBattles(JSON.parse(savedBattles));
-    if (savedTeams) setTeams(JSON.parse(savedTeams));
+    setTeams(loadedTeams);
     if (savedTheme) setIsDark(savedTheme === 'dark');
 
     // Charger les noms français des Pokémon
@@ -136,8 +157,8 @@ const PokemonBattleLogger = () => {
       return;
     }
 
-    const owner = players.find(p => p.id === parseInt(newTeamData.owner));
     const ownerId = parseInt(newTeamData.owner);
+    const owner = players.find(p => p.id === ownerId);
 
     // Ajouter les Pokémon NOUVEAUX à la liste perso du joueur
     const newPlayers = players.map(p => {
@@ -154,7 +175,12 @@ const PokemonBattleLogger = () => {
     });
 
     setPlayers(newPlayers);
-    setTeams([...teams, { id: Date.now(), ...newTeamData, owner: owner?.name || 'Inconnu', ownerId: ownerId }]);
+    setTeams([...teams, { 
+      id: Date.now(), 
+      ...newTeamData, 
+      owner: owner?.name || 'Inconnu', 
+      ownerId: ownerId
+    }]);
     setNewTeamData({ name: '', owner: null, format: '2v2', pokemon: [] });
     setShowNewTeamForm(false);
     setTeamSearchStep('create');
@@ -229,7 +255,7 @@ const PokemonBattleLogger = () => {
       return p;
     });
 
-    // Retirer aussi des équipes du joueur
+    // Retirer aussi des équipes du joueur (utiliser ownerId)
     const newTeams = teams.map(t => {
       if (t.ownerId === playerId && pokemonToDelete) {
         return {
@@ -678,6 +704,27 @@ const PokemonBattleLogger = () => {
           <div className={`${t.bgPrimary} rounded-3xl p-8 max-w-sm mx-4 border ${t.border}`}>
             <h2 className={`text-2xl font-black ${t.text} mb-4`}>Supprimer ce Pokémon?</h2>
             <p className={`${t.textSecondary} mb-6`}>Es-tu sûr de vouloir supprimer <span className="font-black">{deletingPokemon.pokemonName}</span>?</p>
+            
+            {deletingPokemon.type === 'player' && (() => {
+              const player = players.find(p => p.id === deletingPokemon.entityId);
+              const pokemon = player?.pokemon?.find(pk => pk.id === deletingPokemon.pokemonId);
+              const affectedTeams = teams.filter(t => 
+                t.ownerId === deletingPokemon.entityId && 
+                t.pokemon?.some(pk => pk.pokeId === pokemon?.pokeId)
+              );
+
+              return affectedTeams.length > 0 ? (
+                <div className={`${isDark ? 'bg-red-900 bg-opacity-30' : 'bg-red-50'} border border-red-500 rounded-xl p-4 mb-6`}>
+                  <p className="text-red-500 font-bold mb-2">⚠️ Ce Pokémon est utilisé dans {affectedTeams.length} équipe{affectedTeams.length > 1 ? 's' : ''}:</p>
+                  <ul className={`text-sm ${t.textSecondary} space-y-1`}>
+                    {affectedTeams.map(team => (
+                      <li key={team.id}>• {team.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null;
+            })()}
+
             <div className="flex gap-3">
               <button 
                 onClick={() => setDeletingPokemon(null)} 
