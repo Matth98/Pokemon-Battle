@@ -47,6 +47,7 @@ const PokemonBattleLogger = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [teamSearchStep, setTeamSearchStep] = useState('create'); // 'create' ou 'pokemon'
   const [addingPokemonToTeam, setAddingPokemonToTeam] = useState(null); // teamId ou null
+  const [addingPokemonToPlayer, setAddingPokemonToPlayer] = useState(null); // playerId ou null
 
   // LOAD/SAVE
   useEffect(() => {
