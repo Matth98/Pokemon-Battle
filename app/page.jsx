@@ -749,7 +749,10 @@ const PokemonBattleLogger = () => {
                 </div>
                 <div>
                   <label className={`${t.textSecondary} font-bold text-sm`}>DATE</label>
-                  <input type="date" value={newBattleData.date} onChange={(e) => setNewBattleData({...newBattleData, date: e.target.value})} className={`w-full max-w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border overflow-hidden`} />
+                  <input type="date" ref={(ref) => { if (ref) window.dateInputRef = ref; }} value={newBattleData.date} onChange={(e) => setNewBattleData({...newBattleData, date: e.target.value})} className="hidden absolute z-[10000]" />
+                  <button onClick={() => window.dateInputRef?.click()} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border text-left ${newBattleData.date ? t.text : t.textSecondary}`}>
+                    {newBattleData.date ? new Date(newBattleData.date).toLocaleDateString('fr-FR') : 'Sélectionner une date'}
+                  </button>
                 </div>
                 <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
                   <label className="text-orange-500 font-bold text-sm">JOUEUR 1</label>
