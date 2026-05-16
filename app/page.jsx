@@ -49,6 +49,7 @@ const PokemonBattleLogger = () => {
   const [addingPokemonToTeam, setAddingPokemonToTeam] = useState(null); // teamId ou null
   const [addingPokemonToPlayer, setAddingPokemonToPlayer] = useState(null); // playerId ou null
   const [pokemonNamesCache, setPokemonNamesCache] = useState({}); // Cache des noms français
+  const [deletingPokemon, setDeletingPokemon] = useState(null); // { playerId/teamId, pokemonId, type: 'player'/'team' }
 
   // LOAD/SAVE
   useEffect(() => {
@@ -207,6 +208,21 @@ const PokemonBattleLogger = () => {
       return p;
     });
     setPlayers(newPlayers);
+    setSelectedPlayer(newPlayers.find(p => p.id === playerId));
+  };
+
+  const deletePokemonFromTeam = (teamId, pokemonId) => {
+    const newTeams = teams.map(t => {
+      if (t.id === teamId) {
+        return {
+          ...t,
+          pokemon: (t.pokemon || []).filter(pk => pk.id !== pokemonId)
+        };
+      }
+      return t;
+    });
+    setTeams(newTeams);
+    setSelectedTeam(newTeams.find(t => t.id === teamId));
   };
 
   const addPokemonToTeam = (teamId, pokemon) => {
@@ -329,7 +345,7 @@ const PokemonBattleLogger = () => {
                       <p className={`${t.textSecondary} text-sm`}>Niveau {p.level}</p>
                     </div>
                   </div>
-                  <button onClick={() => deletePokemonFromPlayer(selectedPlayer.id, p.id)} className="text-red-500 hover:text-red-600 font-bold">×</button>
+                  <button onClick={() => setDeletingPokemon({ entityId: selectedPlayer.id, pokemonId: p.id, type: 'player', pokemonName: p.name })} className="text-red-500 hover:text-red-600 font-bold">×</button>
                 </div>
               ))}
             </div>
@@ -425,9 +441,12 @@ const PokemonBattleLogger = () => {
           ) : (
             <div className="space-y-3">
               {selectedTeam.pokemon.map(p => (
-                <div key={p.id} className={`${t.bgPrimary} rounded-2xl p-4 border ${t.border} flex items-center gap-3`}>
-                  <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-12 h-12 object-contain" />
-                  <p className={`font-black ${t.text}`}>{p.name}</p>
+                <div key={p.id} className={`${t.bgPrimary} rounded-2xl p-4 border ${t.border} flex items-center justify-between gap-3`}>
+                  <div className="flex items-center gap-3">
+                    <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-12 h-12 object-contain" />
+                    <p className={`font-black ${t.text}`}>{p.name}</p>
+                  </div>
+                  <button onClick={() => setDeletingPokemon({ entityId: selectedTeam.id, pokemonId: p.id, type: 'team', pokemonName: p.name })} className="text-red-500 hover:text-red-600 font-bold">×</button>
                 </div>
               ))}
             </div>
@@ -597,6 +616,37 @@ const PokemonBattleLogger = () => {
                 <button onClick={() => { setShowNewTeamForm(false); setNewTeamData({ name: '', owner: null, format: '2v2', pokemon: [] }); setTeamSearchStep('create'); }} className={`flex-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Annuler</button>
                 <button onClick={createTeam} className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black">Créer</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmation Suppression Pokémon */}
+      {deletingPokemon && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center">
+          <div className={`${t.bgPrimary} rounded-3xl p-8 max-w-sm mx-4 border ${t.border}`}>
+            <h2 className={`text-2xl font-black ${t.text} mb-4`}>Supprimer ce Pokémon?</h2>
+            <p className={`${t.textSecondary} mb-6`}>Es-tu sûr de vouloir supprimer <span className="font-black">{deletingPokemon.pokemonName}</span>?</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setDeletingPokemon(null)} 
+                className={`flex-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={() => {
+                  if (deletingPokemon.type === 'player') {
+                    deletePokemonFromPlayer(deletingPokemon.entityId, deletingPokemon.pokemonId);
+                  } else {
+                    deletePokemonFromTeam(deletingPokemon.entityId, deletingPokemon.pokemonId);
+                  }
+                  setDeletingPokemon(null);
+                }} 
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-black transition"
+              >
+                Supprimer
+              </button>
             </div>
           </div>
         </div>
