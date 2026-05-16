@@ -160,7 +160,15 @@ const PokemonBattleLogger = () => {
       return;
     }
 
-    setBattles([...battles, { id: Date.now(), ...newBattleData }]);
+    // Créer le combat avec les pokémon et leurs statuts
+    const battleWithPokemon = {
+      id: Date.now(),
+      ...newBattleData,
+      team1: battleSelectedPokemon.player1,
+      team2: battleSelectedPokemon.player2
+    };
+
+    setBattles([...battles, battleWithPokemon]);
 
     // Ajouter les pokémon sélectionnés à la liste perso des joueurs (sans doublon)
     let updatedPlayers = players.map(p => {
@@ -638,7 +646,8 @@ const PokemonBattleLogger = () => {
           <h1 className={`text-2xl font-black ${t.text}`}>{selectedBattle.format}</h1>
           <p className={`${t.textSecondary}`}>{selectedBattle.date}</p>
         </div>
-        <div className="px-6 mt-6 pb-32">
+        <div className="px-6 mt-6 pb-32 space-y-4">
+          {/* Info Combat */}
           <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border}`}>
             <div className="flex justify-between mb-4">
               <p className={`font-bold ${t.text}`}>{p1?.name}</p>
@@ -648,6 +657,42 @@ const PokemonBattleLogger = () => {
             {selectedBattle.winner && <p className="text-orange-500 font-bold">🏆 {selectedBattle.winner === 'player1' ? p1?.name : p2?.name} gagné</p>}
             {selectedBattle.notes && <p className={`${t.textSecondary} mt-4`}>{selectedBattle.notes}</p>}
           </div>
+
+          {/* Pokémon Joueur 1 */}
+          {selectedBattle.team1 && selectedBattle.team1.length > 0 && (
+            <div className={`${t.bgPrimary} rounded-2xl p-4 border border-orange-500`}>
+              <p className="text-orange-500 font-bold text-sm mb-3">{p1?.name} - {selectedBattle.team1.length} Pokémon</p>
+              <div className="space-y-2">
+                {selectedBattle.team1.map(poke => (
+                  <div key={poke.id} className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3 flex items-center justify-between border ${poke.eliminated ? 'border-red-500 opacity-60' : t.border}`}>
+                    <div className="flex items-center gap-2">
+                      <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className={`w-8 h-8 object-contain ${poke.eliminated ? 'opacity-50' : ''}`} />
+                      <span className={`font-bold text-sm ${t.text} ${poke.eliminated ? 'line-through opacity-50' : ''}`}>{poke.name}</span>
+                    </div>
+                    {poke.eliminated && <span className="text-red-500 text-sm font-bold">éliminé</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pokémon Joueur 2 */}
+          {selectedBattle.team2 && selectedBattle.team2.length > 0 && (
+            <div className={`${t.bgPrimary} rounded-2xl p-4 border border-red-500`}>
+              <p className="text-red-500 font-bold text-sm mb-3">{p2?.name} - {selectedBattle.team2.length} Pokémon</p>
+              <div className="space-y-2">
+                {selectedBattle.team2.map(poke => (
+                  <div key={poke.id} className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3 flex items-center justify-between border ${poke.eliminated ? 'border-red-500 opacity-60' : t.border}`}>
+                    <div className="flex items-center gap-2">
+                      <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className={`w-8 h-8 object-contain ${poke.eliminated ? 'opacity-50' : ''}`} />
+                      <span className={`font-bold text-sm ${t.text} ${poke.eliminated ? 'line-through opacity-50' : ''}`}>{poke.name}</span>
+                    </div>
+                    {poke.eliminated && <span className="text-red-500 text-sm font-bold">éliminé</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
