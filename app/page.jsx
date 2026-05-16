@@ -50,6 +50,11 @@ const PokemonBattleLogger = () => {
   const [addingPokemonToPlayer, setAddingPokemonToPlayer] = useState(null); // playerId ou null
   const [pokemonNamesCache, setPokemonNamesCache] = useState({}); // Cache des noms français
   const [deletingPokemon, setDeletingPokemon] = useState(null); // { playerId/teamId, pokemonId, type: 'player'/'team' }
+  
+  // MODE SÉLECTION
+  const [selectionMode, setSelectionMode] = useState(null); // 'players', 'pokemon', 'teams' ou null
+  const [selectedItems, setSelectedItems] = useState([]); // IDs des items sélectionnés
+  const [deletingSelected, setDeletingSelected] = useState(false); // Modale de confirmation
 
   // LOAD/SAVE
   useEffect(() => {
@@ -188,6 +193,39 @@ const PokemonBattleLogger = () => {
 
   const getPokemonImageUrl = (id) => {
     return `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
+  };
+
+  // SÉLECTION MULTIPLE
+  const toggleSelectItem = (id) => {
+    setSelectedItems(prev => 
+      prev.includes(id) 
+        ? prev.filter(item => item !== id)
+        : [...prev, id]
+    );
+  };
+
+  const selectAllItems = (items) => {
+    setSelectedItems(items.map(item => item.id));
+  };
+
+  const deselectAllItems = () => {
+    setSelectedItems([]);
+  };
+
+  const deleteSelectedPlayers = () => {
+    const newPlayers = players.filter(p => !selectedItems.includes(p.id));
+    setPlayers(newPlayers);
+    setSelectedItems([]);
+    setSelectionMode(null);
+    setDeletingSelected(false);
+  };
+
+  const deleteSelectedTeams = () => {
+    const newTeams = teams.filter(t => !selectedItems.includes(t.id));
+    setTeams(newTeams);
+    setSelectedItems([]);
+    setSelectionMode(null);
+    setDeletingSelected(false);
   };
 
   const searchPokemon = async (query) => {
@@ -380,17 +418,64 @@ const PokemonBattleLogger = () => {
 
   const renderPlayers = () => (
     <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
-      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder} flex justify-between`}>
-        <h1 className={`text-2xl font-black ${t.text}`}>Joueurs</h1>
-        <button onClick={() => setShowNewPlayerForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-black">+ Ajouter</button>
+      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder}`}>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className={`text-2xl font-black ${t.text}`}>👥 Joueurs</h1>
+          <div className="flex gap-2">
+            {selectionMode === 'players' ? (
+              <>
+                <button onClick={() => { setSelectionMode(null); setSelectedItems([]); }} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>Annuler</button>
+                <button onClick={() => setDeletingSelected(true)} disabled={selectedItems.length === 0} className="bg-red-500 disabled:opacity-50 text-white px-3 py-2 rounded-full font-bold text-sm">🗑️ Supprimer</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setShowNewPlayerForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">+ Ajouter</button>
+                <button onClick={() => setSelectionMode('players')} disabled={players.length === 0} className={`${players.length === 0 ? 'opacity-50 cursor-not-allowed' : ''} ${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>✓ Sélectionner</button>
+              </>
+            )}
+          </div>
+        </div>
+        
+        {selectionMode === 'players' && (
+          <div className="flex gap-2 mt-4">
+            <button onClick={() => selectAllItems(players)} className="bg-blue-500 text-white px-3 py-1 rounded-full font-bold text-xs">Tout sélectionner</button>
+            <button onClick={deselectAllItems} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-1 rounded-full font-bold text-xs`}>Tout désélectionner</button>
+          </div>
+        )}
       </div>
+      
       <div className="px-6 mt-6 pb-32 space-y-3">
-        {players.map(p => (
-          <button key={p.id} onClick={() => { setSelectedPlayer(p); setCurrentTab('playerDetail'); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${t.border} text-left hover:shadow-md transition`}>
-            <h3 className={`font-black ${t.text}`}>{p.name}</h3>
-            <p className={`${t.textSecondary} text-sm`}>⚔️ {p.stats.wins + p.stats.losses} combats · 🏆 {p.stats.wins}V</p>
-          </button>
-        ))}
+        {players.length === 0 ? (
+          <div className="h-screen flex items-center justify-center -mt-20">
+            <div className="text-center">
+              <p className={`text-6xl mb-4`}>👥</p>
+              <h2 className={`text-2xl font-black ${t.text} mb-2`}>Aucun joueur</h2>
+              <p className={`${t.textSecondary} mb-6`}>Crée ton premier joueur pour commencer!</p>
+              <button onClick={() => setShowNewPlayerForm(true)} className="bg-orange-500 text-white px-6 py-3 rounded-full font-black">+ Créer un joueur</button>
+            </div>
+          </div>
+        ) : (
+          players.map(p => (
+            <div key={p.id} className={`${t.bgPrimary} rounded-2xl p-4 border ${t.border} flex items-center gap-4 ${selectionMode === 'players' ? 'cursor-pointer hover:shadow-md transition' : ''}`}>
+              {selectionMode === 'players' && (
+                <input 
+                  type="checkbox" 
+                  checked={selectedItems.includes(p.id)} 
+                  onChange={() => toggleSelectItem(p.id)} 
+                  className="w-5 h-5 cursor-pointer"
+                />
+              )}
+              <button 
+                onClick={() => !selectionMode && (setSelectedPlayer(p), setCurrentTab('playerDetail'))} 
+                disabled={selectionMode === 'players'}
+                className="flex-1 text-left disabled:opacity-50"
+              >
+                <h3 className={`font-black ${t.text}`}>{p.name}</h3>
+                <p className={`${t.textSecondary} text-sm`}>⚔️ {p.stats.wins + p.stats.losses} combats · 🏆 {p.stats.wins}V</p>
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -484,17 +569,64 @@ const PokemonBattleLogger = () => {
 
   const renderTeams = () => (
     <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
-      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder} flex justify-between`}>
-        <h1 className={`text-2xl font-black ${t.text}`}>Équipes</h1>
-        <button onClick={() => setShowNewTeamForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-black">+ Créer</button>
+      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder}`}>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className={`text-2xl font-black ${t.text}`}>🛡️ Équipes</h1>
+          <div className="flex gap-2">
+            {selectionMode === 'teams' ? (
+              <>
+                <button onClick={() => { setSelectionMode(null); setSelectedItems([]); }} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>Annuler</button>
+                <button onClick={() => setDeletingSelected(true)} disabled={selectedItems.length === 0} className="bg-red-500 disabled:opacity-50 text-white px-3 py-2 rounded-full font-bold text-sm">🗑️ Supprimer</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setShowNewTeamForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">+ Créer</button>
+                <button onClick={() => setSelectionMode('teams')} disabled={teams.length === 0} className={`${teams.length === 0 ? 'opacity-50 cursor-not-allowed' : ''} ${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-2 rounded-full font-bold text-sm`}>✓ Sélectionner</button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {selectionMode === 'teams' && (
+          <div className="flex gap-2 mt-4">
+            <button onClick={() => selectAllItems(teams)} className="bg-blue-500 text-white px-3 py-1 rounded-full font-bold text-xs">Tout sélectionner</button>
+            <button onClick={deselectAllItems} className={`${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-white px-3 py-1 rounded-full font-bold text-xs`}>Tout désélectionner</button>
+          </div>
+        )}
       </div>
+      
       <div className="px-6 mt-6 pb-32 space-y-3">
-        {teams.map(team => (
-          <button key={team.id} onClick={() => { setSelectedTeam(team); setCurrentTab('teamDetail'); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${t.border} text-left hover:shadow-md transition`}>
-            <h3 className={`font-black ${t.text}`}>{team.name}</h3>
-            <p className={`${t.textSecondary} text-sm`}>{team.owner} · {team.format}</p>
-          </button>
-        ))}
+        {teams.length === 0 ? (
+          <div className="h-screen flex items-center justify-center -mt-20">
+            <div className="text-center">
+              <p className={`text-6xl mb-4`}>🛡️</p>
+              <h2 className={`text-2xl font-black ${t.text} mb-2`}>Aucune équipe</h2>
+              <p className={`${t.textSecondary} mb-6`}>Crée ta première équipe pour commencer!</p>
+              <button onClick={() => setShowNewTeamForm(true)} className="bg-orange-500 text-white px-6 py-3 rounded-full font-black">+ Créer une équipe</button>
+            </div>
+          </div>
+        ) : (
+          teams.map(team => (
+            <div key={team.id} className={`${t.bgPrimary} rounded-2xl p-4 border ${t.border} flex items-center gap-4 ${selectionMode === 'teams' ? 'cursor-pointer hover:shadow-md transition' : ''}`}>
+              {selectionMode === 'teams' && (
+                <input 
+                  type="checkbox" 
+                  checked={selectedItems.includes(team.id)} 
+                  onChange={() => toggleSelectItem(team.id)} 
+                  className="w-5 h-5 cursor-pointer"
+                />
+              )}
+              <button 
+                onClick={() => !selectionMode && (setSelectedTeam(team), setCurrentTab('teamDetail'))} 
+                disabled={selectionMode === 'teams'}
+                className="flex-1 text-left disabled:opacity-50"
+              >
+                <h3 className={`font-black ${t.text}`}>{team.name}</h3>
+                <p className={`${t.textSecondary} text-sm`}>{team.owner} · {team.format}</p>
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -693,6 +825,36 @@ const PokemonBattleLogger = () => {
                 <button onClick={() => { setShowNewTeamForm(false); setNewTeamData({ name: '', owner: null, format: '2v2', pokemon: [] }); setTeamSearchStep('create'); }} className={`flex-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Annuler</button>
                 <button onClick={createTeam} className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black">Créer</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmation Suppression Multiple */}
+      {deletingSelected && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center">
+          <div className={`${t.bgPrimary} rounded-3xl p-8 max-w-sm mx-4 border ${t.border}`}>
+            <h2 className={`text-2xl font-black ${t.text} mb-4`}>Supprimer ces éléments?</h2>
+            <p className={`${t.textSecondary} mb-6`}>Es-tu sûr de vouloir supprimer <span className="font-black">{selectedItems.length} élément{selectedItems.length > 1 ? 's' : ''}</span>?</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setDeletingSelected(false)} 
+                className={`flex-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={() => {
+                  if (selectionMode === 'players') {
+                    deleteSelectedPlayers();
+                  } else if (selectionMode === 'teams') {
+                    deleteSelectedTeams();
+                  }
+                }} 
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-black transition"
+              >
+                Supprimer
+              </button>
             </div>
           </div>
         </div>
