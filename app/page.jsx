@@ -3,6 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { Home, Users, Plus, Zap, Shield, Moon, Sun, ArrowLeft } from 'lucide-react';
 
+// Charger Font Awesome
+if (typeof document !== 'undefined' && !document.querySelector('link[href*="font-awesome"]')) {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+  document.head.appendChild(link);
+}
+
 const PokemonBattleLogger = () => {
   // THEME
   const [isDark, setIsDark] = useState(false);
@@ -431,7 +439,9 @@ const PokemonBattleLogger = () => {
               <>
                 <button onClick={() => setShowNewPlayerForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">+ Ajouter</button>
                 {players.length > 0 && (
-                  <button onClick={() => setSelectionMode('players')} className="border-2 border-orange-500 text-orange-500 px-4 py-1 rounded-full font-bold text-sm hover:bg-orange-50 transition">✓ Sélectionner</button>
+                  <button onClick={() => setSelectionMode('players')} className={`w-10 h-10 rounded-full ${isDark ? 'bg-orange-500 bg-opacity-20' : 'bg-orange-100'} flex items-center justify-center transition hover:bg-opacity-30`}>
+                    <i className="fa-solid fa-list-check text-orange-500 text-lg"></i>
+                  </button>
                 )}
               </>
             )}
@@ -597,7 +607,9 @@ const PokemonBattleLogger = () => {
               <>
                 <button onClick={() => setShowNewTeamForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">+ Créer</button>
                 {teams.length > 0 && (
-                  <button onClick={() => setSelectionMode('teams')} className="border-2 border-orange-500 text-orange-500 px-4 py-1 rounded-full font-bold text-sm hover:bg-orange-50 transition">✓ Sélectionner</button>
+                  <button onClick={() => setSelectionMode('teams')} className={`w-10 h-10 rounded-full ${isDark ? 'bg-orange-500 bg-opacity-20' : 'bg-orange-100'} flex items-center justify-center transition hover:bg-opacity-30`}>
+                    <i className="fa-solid fa-list-check text-orange-500 text-lg"></i>
+                  </button>
                 )}
               </>
             )}
