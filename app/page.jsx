@@ -57,6 +57,8 @@ const PokemonBattleLogger = () => {
     winner: null,
   });
 
+  const [battlePokemonSelecting, setBattlePokemonSelecting] = useState(null); // 'player1' ou 'player2'
+
   const [newTeamData, setNewTeamData] = useState({
     name: '',
     owner: null,
@@ -785,6 +787,16 @@ const PokemonBattleLogger = () => {
                     <option value="">Choisir</option>
                     {players.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
                   </select>
+                  
+                  {newBattleData.player1 && (
+                    <div className="mt-3 pt-3 border-t border-gray-600">
+                      <p className={`text-xs font-bold ${t.textSecondary} mb-2`}>Pokémon du joueur</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => setBattlePokemonSelecting('player1')} className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm transition">👥 Depuis liste</button>
+                        <button onClick={() => setBattlePokemonSelecting('player1_new')} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-bold text-sm transition">➕ Ajouter</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
                   <label className="text-red-500 font-bold text-sm">JOUEUR 2</label>
@@ -792,6 +804,16 @@ const PokemonBattleLogger = () => {
                     <option value="">Choisir</option>
                     {players.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
                   </select>
+                  
+                  {newBattleData.player2 && (
+                    <div className="mt-3 pt-3 border-t border-gray-600">
+                      <p className={`text-xs font-bold ${t.textSecondary} mb-2`}>Pokémon du joueur</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => setBattlePokemonSelecting('player2')} className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm transition">👥 Depuis liste</button>
+                        <button onClick={() => setBattlePokemonSelecting('player2_new')} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-bold text-sm transition">➕ Ajouter</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
                   <label className={`${t.textSecondary} font-bold text-sm`}>GAGNANT</label>
@@ -1095,6 +1117,81 @@ const PokemonBattleLogger = () => {
               ) : (
                 <div className={`text-center ${t.textSecondary}`}>Commence à taper un nom...</div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Sélectionner Pokémon du Joueur pour Combat */}
+      {battlePokemonSelecting && !battlePokemonSelecting.includes('_new') && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col overflow-hidden">
+          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col overflow-x-hidden`}>
+            <div className="p-6 flex-1 overflow-y-auto w-full box-border">
+              <h2 className={`text-2xl font-black ${t.text} mb-6`}>Sélectionner Pokémon</h2>
+              {(() => {
+                const playerId = battlePokemonSelecting === 'player1' ? newBattleData.player1 : newBattleData.player2;
+                const player = players.find(p => p.id === playerId);
+                
+                return (
+                  <div className="space-y-2">
+                    {!player?.pokemon || player.pokemon.length === 0 ? (
+                      <div className={`text-center ${t.textSecondary}`}>Aucun Pokémon dans la liste du joueur</div>
+                    ) : (
+                      player.pokemon.map(p => (
+                        <button key={p.id} onClick={() => { 
+                          setBattlePokemonSelecting(null);
+                        }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
+                          <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-12 h-12 object-contain" />
+                          <p className={`font-black ${t.text}`}>{p.name}</p>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+            <div className={`border-t ${t.headerBorder} p-6 bg-gradient-to-t ${isDark ? 'from-gray-800' : 'from-gray-50'}`}>
+              <button onClick={() => setBattlePokemonSelecting(null)} className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Ajouter Nouveau Pokémon pour Combat */}
+      {battlePokemonSelecting && battlePokemonSelecting.includes('_new') && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col overflow-hidden">
+          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col overflow-x-hidden`}>
+            <div className="p-6 flex-1 overflow-y-auto w-full box-border">
+              <h2 className={`text-2xl font-black ${t.text} mb-6`}>Ajouter Pokémon</h2>
+              <div className="relative mb-6">
+                <input type="text" placeholder="Chercher Pokémon..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); searchPokemon(e.target.value); }} className={`w-full border ${t.input} rounded-xl px-4 py-3`} autoFocus />
+              </div>
+
+              {searchLoading ? (
+                <div className={`text-center ${t.textSecondary}`}>Recherche en cours...</div>
+              ) : searchTerm && searchResults.length === 0 ? (
+                <div className={`text-center ${t.textSecondary}`}>Aucun résultat</div>
+              ) : searchTerm ? (
+                <div className="space-y-2">
+                  {searchResults.map(poke => (
+                    <button key={poke.pokeId} onClick={() => {
+                      const playerId = battlePokemonSelecting === 'player1_new' ? newBattleData.player1 : newBattleData.player2;
+                      addPokemonToPlayer(playerId, poke);
+                      setBattlePokemonSelecting(null);
+                      setSearchTerm('');
+                      setSearchResults([]);
+                    }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
+                      <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-12 h-12 object-contain" />
+                      <p className={`font-black ${t.text}`}>{poke.name}</p>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-center ${t.textSecondary}`}>Commence à taper un nom...</div>
+              )}
+            </div>
+            <div className={`border-t ${t.headerBorder} p-6 bg-gradient-to-t ${isDark ? 'from-gray-800' : 'from-gray-50'}`}>
+              <button onClick={() => { setBattlePokemonSelecting(null); setSearchTerm(''); setSearchResults([]); }} className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Fermer</button>
             </div>
           </div>
         </div>
