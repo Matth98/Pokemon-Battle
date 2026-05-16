@@ -215,6 +215,10 @@ const PokemonBattleLogger = () => {
   };
 
   const deletePokemonFromPlayer = (playerId, pokemonId) => {
+    const player = players.find(p => p.id === playerId);
+    const pokemonToDelete = player?.pokemon?.find(pk => pk.id === pokemonId);
+
+    // Retirer de la liste perso
     const newPlayers = players.map(p => {
       if (p.id === playerId) {
         return {
@@ -224,7 +228,20 @@ const PokemonBattleLogger = () => {
       }
       return p;
     });
+
+    // Retirer aussi des équipes du joueur
+    const newTeams = teams.map(t => {
+      if (t.ownerId === playerId && pokemonToDelete) {
+        return {
+          ...t,
+          pokemon: (t.pokemon || []).filter(pk => pk.pokeId !== pokemonToDelete.pokeId)
+        };
+      }
+      return t;
+    });
+
     setPlayers(newPlayers);
+    setTeams(newTeams);
     setSelectedPlayer(newPlayers.find(p => p.id === playerId));
   };
 
