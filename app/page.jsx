@@ -11,6 +11,24 @@ if (typeof document !== 'undefined' && !document.querySelector('link[href*="font
   document.head.appendChild(link);
 }
 
+// Ajouter CSS pour fixer l'input date sur iOS
+if (typeof document !== 'undefined' && !document.querySelector('style[data-date-fix]')) {
+  const style = document.createElement('style');
+  style.setAttribute('data-date-fix', 'true');
+  style.textContent = `
+    input[type="date"] {
+      font-size: 16px !important;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+    }
+    input[type="date"]::-webkit-datetime-edit {
+      padding: 0 !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 const PokemonBattleLogger = () => {
   // THEME
   const [isDark, setIsDark] = useState(false);
