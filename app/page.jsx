@@ -1,45 +1,30 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Home, Users, Plus, Zap, Shield, Search, ChevronRight, Trash2, Edit2, Save, Loader, ArrowLeft, Settings, Moon, Sun } from 'lucide-react';
-
-const POKEMON_TYPES = {
-  normal: { name: 'Normal', color: '#A8A878', bg: '#F5F5DC' },
-  fire: { name: 'Feu', color: '#F08030', bg: '#FFE5CC' },
-  water: { name: 'Eau', color: '#6890F0', bg: '#CCE5FF' },
-  electric: { name: 'Électrique', color: '#F8D030', bg: '#FFFACD' },
-  grass: { name: 'Plante', color: '#78C850', bg: '#E8F5E9' },
-  ice: { name: 'Glace', color: '#98D8D8', bg: '#E0F7FA' },
-  fighting: { name: 'Combat', color: '#C03028', bg: '#FFEBEE' },
-  poison: { name: 'Poison', color: '#A040A0', bg: '#F3E5F5' },
-  ground: { name: 'Sol', color: '#E0C068', bg: '#FFF9E6' },
-  flying: { name: 'Vol', color: '#A890F0', bg: '#F3E5F5' },
-  psychic: { name: 'Psy', color: '#F85888', bg: '#FCE4EC' },
-  bug: { name: 'Insecte', color: '#A8B820', bg: '#F1F8E9' },
-  rock: { name: 'Roche', color: '#B8A038', bg: '#FFF3E0' },
-  ghost: { name: 'Spectre', color: '#705898', bg: '#EDE7F6' },
-  dragon: { name: 'Dragon', color: '#7038F8', bg: '#F3E5F5' },
-  dark: { name: 'Ténèbres', color: '#705848', bg: '#EFEBE9' },
-  steel: { name: 'Acier', color: '#B8B8D0', bg: '#ECEFF1' },
-  fairy: { name: 'Fée', color: '#EE99AC', bg: '#FFC0CB' },
-};
+import { Home, Users, Plus, Zap, Shield, Moon, Sun, ArrowLeft } from 'lucide-react';
 
 const PokemonBattleLogger = () => {
+  // THEME
   const [isDark, setIsDark] = useState(false);
+  const theme = {
+    light: { bg: 'from-gray-50 to-gray-100', bgPrimary: 'bg-white', border: 'border-gray-200', text: 'text-gray-900', textSecondary: 'text-gray-500', headerBg: 'bg-white', headerBorder: 'border-gray-200', input: 'bg-white border-gray-300 text-gray-900' },
+    dark: { bg: 'from-gray-900 to-gray-800', bgPrimary: 'bg-gray-800', border: 'border-gray-700', text: 'text-white', textSecondary: 'text-gray-400', headerBg: 'bg-gray-800', headerBorder: 'border-gray-700', input: 'bg-gray-700 border-gray-600 text-white' }
+  };
+  const t = isDark ? theme.dark : theme.light;
+
+  // STATE
   const [currentTab, setCurrentTab] = useState('home');
   const [players, setPlayers] = useState([]);
+  const [battles, setBattles] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedBattle, setSelectedBattle] = useState(null);
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  
   const [showNewPlayerForm, setShowNewPlayerForm] = useState(false);
   const [showNewBattleForm, setShowNewBattleForm] = useState(false);
   const [showNewTeamForm, setShowNewTeamForm] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [teams, setTeams] = useState([]);
-  const [battles, setBattles] = useState([]);
-  const [pokemonNames, setPokemonNames] = useState({});
+
   const [newBattleData, setNewBattleData] = useState({
     format: '1v1',
     player1: null,
@@ -48,80 +33,85 @@ const PokemonBattleLogger = () => {
     notes: '',
     winner: null,
   });
+
   const [newTeamData, setNewTeamData] = useState({
     name: '',
     owner: null,
-    pokemon: [],
     format: '2v2',
+    pokemon: [],
   });
-  const [teamSearchStep, setTeamSearchStep] = useState('create');
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('pokebattle_theme');
-    if (savedTheme) {
-      setIsDark(savedTheme === 'dark');
-    }
-  }, []);
+  // POKEMON SEARCH
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [teamSearchStep, setTeamSearchStep] = useState('create'); // 'create' ou 'pokemon'
+  const [addingPokemonToPlayer, setAddingPokemonToPlayer] = useState(null); // playerId ou null
 
+  // LOAD/SAVE
   useEffect(() => {
-    localStorage.setItem('pokebattle_theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('pokebattle_players');
-    const savedTeams = localStorage.getItem('pokebattle_teams');
-    const savedBattles = localStorage.getItem('pokebattle_battles');
+    const saved = localStorage.getItem('pb_players');
+    const savedBattles = localStorage.getItem('pb_battles');
+    const savedTeams = localStorage.getItem('pb_teams');
+    const savedTheme = localStorage.getItem('pb_theme');
     
     if (saved) setPlayers(JSON.parse(saved));
-    if (savedTeams) setTeams(JSON.parse(savedTeams));
     if (savedBattles) setBattles(JSON.parse(savedBattles));
+    if (savedTeams) setTeams(JSON.parse(savedTeams));
+    if (savedTheme) setIsDark(savedTheme === 'dark');
   }, []);
 
   useEffect(() => {
-    const loadPokemonNames = async () => {
-      try {
-        const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
-        const data = await response.json();
-        
-        const namesMap = {};
-        for (let i = 0; i < Math.min(data.results.length, 300); i += 50) {
-          const batch = data.results.slice(i, i + 50);
-          
-          await Promise.all(
-            batch.map(async (poke, idx) => {
-              try {
-                const pokeId = i + idx + 1;
-                const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokeId}`);
-                const speciesData = await speciesRes.json();
-                
-                const frenchName = speciesData.names.find(n => n.language.name === 'fr')?.name || poke.name;
-                const pokeRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeId}`);
-                const pokeData = await pokeRes.json();
-                
-                namesMap[pokeId] = {
-                  name: frenchName,
-                  types: pokeData.types.map(t => t.type.name),
-                };
-              } catch (e) {
-                namesMap[i + idx + 1] = { name: data.results[i + idx]?.name || 'Pokémon', types: ['normal'] };
-              }
-            })
-          );
-        }
-        setPokemonNames(namesMap);
-      } catch (error) {
-        console.error('Erreur chargement noms:', error);
+    localStorage.setItem('pb_players', JSON.stringify(players));
+    localStorage.setItem('pb_battles', JSON.stringify(battles));
+    localStorage.setItem('pb_teams', JSON.stringify(teams));
+    localStorage.setItem('pb_theme', isDark ? 'dark' : 'light');
+  }, [players, battles, teams, isDark]);
+
+  // FUNCTIONS
+  const addPlayer = (name) => {
+    setPlayers([...players, { id: Date.now(), name, stats: { wins: 0, losses: 0 } }]);
+  };
+
+  const recordBattle = () => {
+    if (!newBattleData.player1 || !newBattleData.player2 || !newBattleData.winner) {
+      alert('Remplissez tous les champs');
+      return;
+    }
+
+    setBattles([...battles, { id: Date.now(), ...newBattleData }]);
+
+    const updatedPlayers = players.map(p => {
+      const isWinner = (newBattleData.winner === 'player1' && p.id === newBattleData.player1) || 
+                       (newBattleData.winner === 'player2' && p.id === newBattleData.player2);
+      if (p.id === newBattleData.player1 || p.id === newBattleData.player2) {
+        return {
+          ...p,
+          stats: {
+            wins: p.stats.wins + (isWinner ? 1 : 0),
+            losses: p.stats.losses + (isWinner ? 0 : 1),
+          },
+        };
       }
-    };
+      return p;
+    });
+    setPlayers(updatedPlayers);
 
-    loadPokemonNames();
-  }, []);
+    setNewBattleData({ format: '1v1', player1: null, player2: null, date: new Date().toISOString().split('T')[0], notes: '', winner: null });
+    setShowNewBattleForm(false);
+  };
 
-  useEffect(() => {
-    if (players.length > 0) localStorage.setItem('pokebattle_players', JSON.stringify(players));
-    if (teams.length > 0) localStorage.setItem('pokebattle_teams', JSON.stringify(teams));
-    if (battles.length > 0) localStorage.setItem('pokebattle_battles', JSON.stringify(battles));
-  }, [players, teams, battles]);
+  const createTeam = () => {
+    if (!newTeamData.name.trim() || !newTeamData.owner) {
+      alert('Remplissez le nom et le propriétaire');
+      return;
+    }
+
+    const owner = players.find(p => p.id === parseInt(newTeamData.owner));
+    setTeams([...teams, { id: Date.now(), ...newTeamData, owner: owner?.name || 'Inconnu', pokemon: [] }]);
+    setNewTeamData({ name: '', owner: null, format: '2v2' });
+    setShowNewTeamForm(false);
+  };
 
   const getPokemonImageUrl = (id) => {
     return `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
@@ -139,26 +129,13 @@ const PokemonBattleLogger = () => {
       const data = await response.json();
       
       const results = [];
-      for (let i = 0; i < data.results.length; i++) {
+      for (let i = 0; i < data.results.length && results.length < 20; i++) {
         const poke = data.results[i];
         const pokeId = i + 1;
-        
-        let frenchName = pokemonNames[pokeId]?.name;
-        let types = pokemonNames[pokeId]?.types || ['normal'];
-        
-        if (!frenchName) {
-          try {
-            const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokeId}`);
-            const speciesData = await speciesRes.json();
-            frenchName = speciesData.names.find(n => n.language.name === 'fr')?.name || poke.name;
-          } catch (e) {
-            frenchName = poke.name.charAt(0).toUpperCase() + poke.name.slice(1);
-          }
-        }
+        const frenchName = poke.name.charAt(0).toUpperCase() + poke.name.slice(1);
         
         if (frenchName.toLowerCase().includes(query.toLowerCase()) || poke.name.toLowerCase().includes(query.toLowerCase())) {
-          results.push({ pokeId, name: frenchName, types });
-          if (results.length >= 50) break;
+          results.push({ pokeId, name: frenchName });
         }
       }
       
@@ -171,116 +148,52 @@ const PokemonBattleLogger = () => {
     }
   };
 
-  const addPlayer = (name) => {
-    const newPlayer = {
-      id: Date.now(),
-      name,
-      pokemon: [],
-      stats: { wins: 0, losses: 0 },
-      battles: [],
-    };
-    setPlayers([...players, newPlayer]);
-  };
-
   const addPokemonToPlayer = (playerId, pokemon) => {
-    const newPoke = {
-      id: Date.now(),
-      pokeId: pokemon.pokeId,
-      name: pokemon.name,
-      types: pokemon.types || [],
-      level: 50,
-    };
-    
-    const updatedPlayers = players.map(p => 
-      p.id === playerId 
-        ? { ...p, pokemon: [...(p.pokemon || []), newPoke] }
-        : p
-    );
-    setPlayers(updatedPlayers);
-    setSelectedPlayer(updatedPlayers.find(p => p.id === playerId));
-  };
-
-  const deletePokemonFromPlayer = (playerId, pokemonId) => {
-    const updatedPlayers = players.map(p => 
-      p.id === playerId 
-        ? { ...p, pokemon: (p.pokemon || []).filter(pk => pk.id !== pokemonId) }
-        : p
-    );
-    setPlayers(updatedPlayers);
-    setSelectedPlayer(updatedPlayers.find(p => p.id === playerId));
-  };
-
-  const recordBattle = () => {
-    if (!newBattleData.player1 || !newBattleData.player2 || !newBattleData.winner) {
-      alert('Veuillez remplir tous les champs');
-      return;
-    }
-
-    const battle = {
-      id: Date.now(),
-      ...newBattleData,
-    };
-    setBattles([...battles, battle]);
-
-    const updatedPlayers = players.map(p => {
-      if (p.id === newBattleData.player1 || p.id === newBattleData.player2) {
-        const isWinner = (newBattleData.winner === 'player1' && p.id === newBattleData.player1) || 
-                         (newBattleData.winner === 'player2' && p.id === newBattleData.player2);
+    const newPlayers = players.map(p => {
+      if (p.id === playerId) {
         return {
           ...p,
-          stats: {
-            wins: p.stats.wins + (isWinner ? 1 : 0),
-            losses: p.stats.losses + (isWinner ? 0 : 1),
-          },
+          pokemon: [...(p.pokemon || []), { id: Date.now(), pokeId: pokemon.pokeId, name: pokemon.name, level: 50 }]
         };
       }
       return p;
     });
-    setPlayers(updatedPlayers);
+    setPlayers(newPlayers);
+    setAddingPokemonToPlayer(null);
+    setSearchTerm('');
+    setSearchResults([]);
+  };
 
-    setNewBattleData({
-      format: '1v1',
-      player1: null,
-      player2: null,
-      date: new Date().toISOString().split('T')[0],
-      notes: '',
-      winner: null,
+  const deletePokemonFromPlayer = (playerId, pokemonId) => {
+    const newPlayers = players.map(p => {
+      if (p.id === playerId) {
+        return {
+          ...p,
+          pokemon: (p.pokemon || []).filter(pk => pk.id !== pokemonId)
+        };
+      }
+      return p;
     });
-    setShowNewBattleForm(false);
+    setPlayers(newPlayers);
   };
 
-  const theme = {
-    light: {
-      bg: 'from-gray-50 to-gray-100',
-      bgPrimary: 'bg-white',
-      bgSecondary: 'bg-gray-50',
-      border: 'border-gray-200',
-      text: 'text-gray-900',
-      textSecondary: 'text-gray-500',
-      textTertiary: 'text-gray-400',
-      headerBg: 'bg-white',
-      headerBorder: 'border-gray-200',
-      input: 'bg-white border-gray-300 text-gray-900 placeholder-gray-500',
-      inputFocus: 'focus:ring-orange-500',
-    },
-    dark: {
-      bg: 'from-gray-900 to-gray-800',
-      bgPrimary: 'bg-gray-800',
-      bgSecondary: 'bg-gray-700',
-      border: 'border-gray-700',
-      text: 'text-white',
-      textSecondary: 'text-gray-400',
-      textTertiary: 'text-gray-500',
-      headerBg: 'bg-gray-800',
-      headerBorder: 'border-gray-700',
-      input: 'bg-gray-700 border-gray-600 text-white placeholder-gray-400',
-      inputFocus: 'focus:ring-orange-500',
-    }
+  const addPokemonToTeam = (teamId, pokemon) => {
+    const newTeams = teams.map(t => {
+      if (t.id === teamId) {
+        return {
+          ...t,
+          pokemon: [...(t.pokemon || []), { id: Date.now(), pokeId: pokemon.pokeId, name: pokemon.name }]
+        };
+      }
+      return t;
+    });
+    setTeams(newTeams);
+    setTeamSearchStep('create');
+    setSearchTerm('');
+    setSearchResults([]);
   };
 
-  const t = isDark ? theme.dark : theme.light;
-
-  // HOME PAGE
+  // PAGES
   const renderHome = () => (
     <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
       <div className={`${t.headerBg} pt-8 pb-12 px-6 border-b ${t.headerBorder}`}>
@@ -289,425 +202,297 @@ const PokemonBattleLogger = () => {
             <h1 className={`text-4xl font-black ${t.text}`}>Pokémon</h1>
             <p className="text-4xl font-black text-orange-500">Battle Tracker</p>
           </div>
-          <button 
-            onClick={() => setIsDark(!isDark)}
-            className={`w-12 h-12 rounded-full ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-orange-100 hover:bg-orange-200'} flex items-center justify-center transition hover:scale-110`}
-          >
-            {isDark ? (
-              <Sun size={24} className="text-yellow-400" />
-            ) : (
-              <Moon size={24} className="text-orange-500" />
-            )}
+          <button onClick={() => setIsDark(!isDark)} className={`w-12 h-12 rounded-full ${isDark ? 'bg-gray-700' : 'bg-orange-100'} flex items-center justify-center`}>
+            {isDark ? <Sun size={24} className="text-yellow-400" /> : <Moon size={24} className="text-orange-500" />}
           </button>
         </div>
-        <p className={t.textSecondary}>Enregistrez vos combats & analysez vos équipes.</p>
       </div>
 
-      <div className="px-6 mt-8 space-y-4">
+      <div className="px-6 mt-8 space-y-4 pb-32">
         <div className="grid grid-cols-3 gap-4">
           <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border} text-center`}>
-            <div className={`w-12 h-12 ${isDark ? 'bg-purple-900' : 'bg-purple-100'} rounded-2xl flex items-center justify-center mx-auto mb-3`}>
-              <Users size={24} className={isDark ? 'text-purple-400' : 'text-purple-600'} />
-            </div>
             <p className={`${t.textSecondary} text-sm font-bold`}>JOUEURS</p>
             <p className={`text-3xl font-black ${t.text}`}>{players.length}</p>
           </div>
           <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border} text-center`}>
-            <div className={`w-12 h-12 ${isDark ? 'bg-red-900' : 'bg-red-100'} rounded-2xl flex items-center justify-center mx-auto mb-3`}>
-              <Zap size={24} className={isDark ? 'text-red-400' : 'text-red-600'} />
-            </div>
             <p className={`${t.textSecondary} text-sm font-bold`}>COMBATS</p>
             <p className={`text-3xl font-black ${t.text}`}>{battles.length}</p>
           </div>
           <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border} text-center`}>
-            <div className={`w-12 h-12 ${isDark ? 'bg-orange-900' : 'bg-orange-100'} rounded-2xl flex items-center justify-center mx-auto mb-3`}>
-              <Shield size={24} className={isDark ? 'text-orange-400' : 'text-orange-600'} />
-            </div>
             <p className={`${t.textSecondary} text-sm font-bold`}>ÉQUIPES</p>
             <p className={`text-3xl font-black ${t.text}`}>{teams.length}</p>
           </div>
         </div>
-      </div>
 
-      <div className="px-6 mt-8 space-y-3 pb-32">
-        <button
-          onClick={() => setShowNewBattleForm(true)}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-2xl font-black text-lg transition"
-        >
+        <button onClick={() => setShowNewBattleForm(true)} className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-2xl font-black text-lg transition">
           + Combat
         </button>
-        <button
-          onClick={() => setCurrentTab('players')}
-          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-2xl font-black text-lg transition"
-        >
-          👥 Ajouter joueur
-        </button>
-      </div>
 
-      <div className="px-6 pb-32">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className={`text-xl font-black ${t.text}`}>📊 Combats récents</h2>
-          {battles.length > 0 && (
-            <button onClick={() => setCurrentTab('battles')} className="text-orange-500 font-bold text-sm">
-              Voir tout →
-            </button>
+        <div className="mt-12">
+          <h2 className={`text-xl font-black ${t.text} mb-4`}>📊 Combats récents</h2>
+          {battles.length === 0 ? (
+            <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border} text-center ${t.textSecondary}`}>Aucun combat</div>
+          ) : (
+            battles.slice(-2).map(b => {
+              const p1 = players.find(p => p.id === b.player1);
+              const p2 = players.find(p => p.id === b.player2);
+              return (
+                <button key={b.id} onClick={() => { setSelectedBattle(b); setCurrentTab('battleDetail'); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${t.border} mb-2 text-left hover:shadow-md transition`}>
+                  <p className="text-orange-500 text-sm font-bold">{b.format}</p>
+                  <div className="flex justify-between mt-2">
+                    <p className={`font-bold ${b.winner === 'player1' ? 'text-orange-500' : t.textSecondary}`}>{p1?.name}</p>
+                    <p className={`font-bold ${b.winner === 'player2' ? 'text-orange-500' : t.textSecondary}`}>{p2?.name}</p>
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
-
-        {battles.length === 0 ? (
-          <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border} text-center ${t.textSecondary}`}>
-            Aucun combat
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {battles.slice(-2).map((battle) => {
-              const p1 = players.find(p => p.id === battle.player1);
-              const p2 = players.find(p => p.id === battle.player2);
-              return (
-                <div key={battle.id} className={`${t.bgPrimary} rounded-2xl p-4 border ${t.border} cursor-pointer hover:shadow-md transition`} onClick={() => {
-                  setSelectedBattle(battle);
-                  setCurrentTab('battleDetail');
-                }}>
-                  <p className="text-orange-500 text-sm font-bold mb-2">{battle.format}</p>
-                  <div className="flex items-center justify-between">
-                    <p className={`font-bold ${battle.winner === 'player1' ? 'text-orange-500' : t.textTertiary}`}>
-                      {p1?.name || 'Joueur 1'}
-                    </p>
-                    <p className={`text-sm ${t.textSecondary}`}>vs</p>
-                    <p className={`font-bold ${battle.winner === 'player2' ? 'text-orange-500' : t.textTertiary}`}>
-                      {p2?.name || 'Joueur 2'}
-                    </p>
-                  </div>
-                  {battle.winner && (
-                    <p className="text-orange-500 text-sm text-center mt-2 font-bold">
-                      🏆 {battle.winner === 'player1' ? p1?.name : p2?.name} a gagné
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );
 
-  // PLAYERS PAGE
   const renderPlayers = () => (
     <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
-      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder} flex justify-between items-center`}>
-        <div>
-          <h1 className={`text-2xl font-black ${t.text}`}>Joueurs</h1>
-          <p className={`${t.textSecondary} text-sm`}>{players.length} joueurs</p>
-        </div>
-        <button
-          onClick={() => setShowNewPlayerForm(true)}
-          className="bg-orange-500 text-white px-6 py-2 rounded-full font-black hover:bg-orange-600 transition"
-        >
-          + Ajouter
-        </button>
+      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder} flex justify-between`}>
+        <h1 className={`text-2xl font-black ${t.text}`}>Joueurs</h1>
+        <button onClick={() => setShowNewPlayerForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-black">+ Ajouter</button>
       </div>
-
-      <div className="px-6 mt-6 space-y-3 pb-32">
-        {players.length === 0 ? (
-          <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border} text-center ${t.textSecondary}`}>
-            Aucun joueur créé
-          </div>
-        ) : (
-          players.map((player) => (
-            <button
-              key={player.id}
-              onClick={() => {
-                setSelectedPlayer(player);
-                setCurrentTab('playerDetail');
-              }}
-              className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${t.border} hover:shadow-md transition text-left`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className={`font-black ${t.text} text-lg`}>{player.name}</h3>
-                  <p className={`${t.textSecondary} text-sm`}>⚔️ {player.stats.wins + player.stats.losses} combats · 🏆 {player.stats.wins} victoires</p>
-                </div>
-                <ChevronRight className={t.textTertiary} />
-              </div>
-            </button>
-          ))
-        )}
+      <div className="px-6 mt-6 pb-32 space-y-3">
+        {players.map(p => (
+          <button key={p.id} onClick={() => { setSelectedPlayer(p); setCurrentTab('playerDetail'); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${t.border} text-left hover:shadow-md transition`}>
+            <h3 className={`font-black ${t.text}`}>{p.name}</h3>
+            <p className={`${t.textSecondary} text-sm`}>⚔️ {p.stats.wins + p.stats.losses} combats · 🏆 {p.stats.wins}V</p>
+          </button>
+        ))}
       </div>
     </div>
   );
 
-  // BATTLES PAGE
+  const renderPlayerDetail = () => {
+    if (!selectedPlayer) return null;
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
+        <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder}`}>
+          <button onClick={() => { setCurrentTab('players'); setSelectedPlayer(null); }} className="text-orange-500 mb-4 font-bold">← Retour</button>
+          <h1 className={`text-2xl font-black ${t.text}`}>{selectedPlayer.name}</h1>
+          <p className={`${t.textSecondary}`}>🏆 {selectedPlayer.stats.wins}V - {selectedPlayer.stats.losses}D</p>
+        </div>
+        <div className="px-6 mt-6 pb-32">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className={`text-lg font-black ${t.text}`}>Pokémon ({(selectedPlayer.pokemon || []).length})</h2>
+            <button onClick={() => setAddingPokemonToPlayer(selectedPlayer.id)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">+ Ajouter</button>
+          </div>
+          {(!selectedPlayer.pokemon || selectedPlayer.pokemon.length === 0) ? (
+            <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border} text-center ${t.textSecondary}`}>Aucun Pokémon</div>
+          ) : (
+            <div className="space-y-3">
+              {selectedPlayer.pokemon.map(p => (
+                <div key={p.id} className={`${t.bgPrimary} rounded-2xl p-4 border ${t.border} flex justify-between items-center`}>
+                  <div className="flex items-center gap-3">
+                    <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-12 h-12 object-contain" />
+                    <div>
+                      <p className={`font-black ${t.text}`}>{p.name}</p>
+                      <p className={`${t.textSecondary} text-sm`}>Niveau {p.level}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => deletePokemonFromPlayer(selectedPlayer.id, p.id)} className="text-red-500 hover:text-red-600 font-bold">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderBattles = () => (
     <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
-      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder} flex justify-between items-center`}>
-        <div>
-          <h1 className={`text-2xl font-black ${t.text}`}>Combats</h1>
-          <p className={`${t.textSecondary} text-sm`}>{battles.length} combats</p>
-        </div>
-        <button
-          onClick={() => setShowNewBattleForm(true)}
-          className="bg-orange-500 text-white px-6 py-2 rounded-full font-black hover:bg-orange-600 transition"
-        >
-          + Nouveau
-        </button>
+      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder} flex justify-between`}>
+        <h1 className={`text-2xl font-black ${t.text}`}>Combats</h1>
+        <button onClick={() => setShowNewBattleForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-black">+ Nouveau</button>
       </div>
-
-      <div className="px-6 mt-6 space-y-3 pb-32">
-        {battles.length === 0 ? (
-          <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border} text-center ${t.textSecondary}`}>
-            Aucun combat enregistré
-          </div>
-        ) : (
-          battles.map((battle) => {
-            const p1 = players.find(p => p.id === battle.player1);
-            const p2 = players.find(p => p.id === battle.player2);
-            return (
-              <button
-                key={battle.id}
-                onClick={() => {
-                  setSelectedBattle(battle);
-                  setCurrentTab('battleDetail');
-                }}
-                className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${t.border} hover:shadow-md transition text-left`}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-orange-500 text-sm font-bold">{battle.format}</p>
-                  <p className={`${t.textSecondary} text-sm`}>{battle.date}</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className={`font-bold ${battle.winner === 'player1' ? 'text-orange-500' : t.textTertiary}`}>
-                    {p1?.name || 'Joueur 1'}
-                  </p>
-                  <p className={`${t.textSecondary} text-sm`}>vs</p>
-                  <p className={`font-bold ${battle.winner === 'player2' ? 'text-orange-500' : t.textTertiary}`}>
-                    {p2?.name || 'Joueur 2'}
-                  </p>
-                </div>
-                {battle.winner && (
-                  <p className="text-orange-500 text-sm text-center mt-2 font-bold">
-                    🏆 {battle.winner === 'player1' ? p1?.name : p2?.name} a gagné
-                  </p>
-                )}
-              </button>
-            );
-          })
-        )}
+      <div className="px-6 mt-6 pb-32 space-y-3">
+        {battles.map(b => {
+          const p1 = players.find(p => p.id === b.player1);
+          const p2 = players.find(p => p.id === b.player2);
+          return (
+            <button key={b.id} onClick={() => { setSelectedBattle(b); setCurrentTab('battleDetail'); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${t.border} text-left hover:shadow-md transition`}>
+              <p className="text-orange-500 text-sm font-bold">{b.format}</p>
+              <div className="flex justify-between mt-2">
+                <p className={`font-bold ${b.winner === 'player1' ? 'text-orange-500' : t.textSecondary}`}>{p1?.name}</p>
+                <p className={`font-bold ${b.winner === 'player2' ? 'text-orange-500' : t.textSecondary}`}>{p2?.name}</p>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 
-  // TEAMS PAGE
+  const renderBattleDetail = () => {
+    if (!selectedBattle) return null;
+    const p1 = players.find(p => p.id === selectedBattle.player1);
+    const p2 = players.find(p => p.id === selectedBattle.player2);
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
+        <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder}`}>
+          <button onClick={() => { setCurrentTab('battles'); setSelectedBattle(null); }} className="text-orange-500 mb-4 font-bold">← Retour</button>
+          <h1 className={`text-2xl font-black ${t.text}`}>{selectedBattle.format}</h1>
+          <p className={`${t.textSecondary}`}>{selectedBattle.date}</p>
+        </div>
+        <div className="px-6 mt-6 pb-32">
+          <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border}`}>
+            <div className="flex justify-between mb-4">
+              <p className={`font-bold ${t.text}`}>{p1?.name}</p>
+              <p className={`${t.textSecondary}`}>vs</p>
+              <p className={`font-bold ${t.text}`}>{p2?.name}</p>
+            </div>
+            {selectedBattle.winner && <p className="text-orange-500 font-bold">🏆 {selectedBattle.winner === 'player1' ? p1?.name : p2?.name} gagné</p>}
+            {selectedBattle.notes && <p className={`${t.textSecondary} mt-4`}>{selectedBattle.notes}</p>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderTeams = () => (
     <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
-      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder} flex justify-between items-center`}>
-        <div>
-          <h1 className={`text-2xl font-black ${t.text}`}>Équipes</h1>
-          <p className={`${t.textSecondary} text-sm`}>{teams.length} équipes</p>
-        </div>
-        <button 
-          onClick={() => setShowNewTeamForm(true)}
-          className="bg-orange-500 text-white px-6 py-2 rounded-full font-black hover:bg-orange-600 transition">
-          + Créer
-        </button>
+      <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder} flex justify-between`}>
+        <h1 className={`text-2xl font-black ${t.text}`}>Équipes</h1>
+        <button onClick={() => setShowNewTeamForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-full font-black">+ Créer</button>
       </div>
-
-      <div className="px-6 mt-6 space-y-3 pb-32">
-        {teams.length === 0 ? (
-          <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border} text-center ${t.textSecondary}`}>
-            Aucune équipe créée
-          </div>
-        ) : (
-          teams.map((team) => (
-            <div key={team.id} className={`${t.bgPrimary} rounded-2xl p-4 border ${t.border} hover:shadow-md transition cursor-pointer`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className={`font-black ${t.text}`}>{team.name}</h3>
-                  <p className={`${t.textSecondary} text-sm`}>{team.owner} · {team.pokemon.length} Pokémon · {team.format}</p>
-                </div>
-                <ChevronRight className={t.textTertiary} />
-              </div>
-            </div>
-          ))
-        )}
+      <div className="px-6 mt-6 pb-32 space-y-3">
+        {teams.map(team => (
+          <button key={team.id} onClick={() => { setSelectedTeam(team); setCurrentTab('teamDetail'); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${t.border} text-left hover:shadow-md transition`}>
+            <h3 className={`font-black ${t.text}`}>{team.name}</h3>
+            <p className={`${t.textSecondary} text-sm`}>{team.owner} · {team.format}</p>
+          </button>
+        ))}
       </div>
     </div>
   );
 
-  // RENDER MAIN
+  const renderTeamDetail = () => {
+    if (!selectedTeam) return null;
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
+        <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder}`}>
+          <button onClick={() => { setCurrentTab('teams'); setSelectedTeam(null); }} className="text-orange-500 mb-4 font-bold">← Retour</button>
+          <h1 className={`text-2xl font-black ${t.text}`}>{selectedTeam.name}</h1>
+          <p className={`${t.textSecondary}`}>{selectedTeam.owner} · {selectedTeam.format}</p>
+        </div>
+        <div className="px-6 mt-6 pb-32">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className={`text-lg font-black ${t.text}`}>Pokémon ({(selectedTeam.pokemon || []).length})</h2>
+            <button onClick={() => setTeamSearchStep('pokemon')} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">+ Ajouter</button>
+          </div>
+          {(!selectedTeam.pokemon || selectedTeam.pokemon.length === 0) ? (
+            <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border} text-center ${t.textSecondary}`}>Aucun Pokémon</div>
+          ) : (
+            <div className="space-y-3">
+              {selectedTeam.pokemon.map(p => (
+                <div key={p.id} className={`${t.bgPrimary} rounded-2xl p-4 border ${t.border} flex items-center gap-3`}>
+                  <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-12 h-12 object-contain" />
+                  <p className={`font-black ${t.text}`}>{p.name}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // MAIN RETURN
   return (
-    <div className={`min-h-screen`}>
-      {/* Content Pages */}
+    <div className="min-h-screen">
       {currentTab === 'home' && renderHome()}
       {currentTab === 'players' && renderPlayers()}
+      {currentTab === 'playerDetail' && renderPlayerDetail()}
       {currentTab === 'battles' && renderBattles()}
+      {currentTab === 'battleDetail' && renderBattleDetail()}
       {currentTab === 'teams' && renderTeams()}
+      {currentTab === 'teamDetail' && renderTeamDetail()}
 
-      {/* Bottom Navigation */}
+      {/* Bottom Menu - Hidden when modals open */}
       {!showNewBattleForm && !showNewPlayerForm && !showNewTeamForm && (
         <div className={`fixed bottom-0 left-0 right-0 ${t.headerBg} border-t ${t.headerBorder} flex justify-around items-center px-4 py-4 z-20`}>
-        <button
-          onClick={() => {
-            setCurrentTab('home');
-            setSelectedPlayer(null);
-            setSelectedBattle(null);
-          }}
-          className={`flex flex-col items-center gap-1 py-2 px-4 rounded-2xl transition ${
-            currentTab === 'home' ? 'text-orange-500' : `${t.textSecondary} hover:${t.text}`
-          }`}
-        >
-          <Home size={24} />
-          <span className="text-xs font-bold">Accueil</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentTab('players')}
-          className={`flex flex-col items-center gap-1 py-2 px-4 rounded-2xl transition ${
-            currentTab === 'players' ? `text-orange-500` : `${t.textSecondary} hover:${t.text}`
-          }`}
-        >
-          <Users size={24} />
-          <span className="text-xs font-bold">Joueurs</span>
-        </button>
-
-        <button
-          onClick={() => setShowNewBattleForm(true)}
-          className="flex flex-col items-center gap-1 py-2 px-4 rounded-2xl bg-orange-500 text-white font-bold -mt-8 w-16 h-16 hover:bg-orange-600 transition"
-        >
-          <Plus size={28} />
-          <span className="text-xs">Combat</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentTab('battles')}
-          className={`flex flex-col items-center gap-1 py-2 px-4 rounded-2xl transition ${
-            currentTab === 'battles' ? 'text-orange-500' : `${t.textSecondary} hover:${t.text}`
-          }`}
-        >
-          <Zap size={24} />
-          <span className="text-xs font-bold">Combats</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentTab('teams')}
-          className={`flex flex-col items-center gap-1 py-2 px-4 rounded-2xl transition ${
-            currentTab === 'teams' ? `text-orange-500` : `${t.textSecondary} hover:${t.text}`
-          }`}
-        >
-          <Shield size={24} />
-          <span className="text-xs font-bold">Équipes</span>
-        </button>
-      </div>
+          <button onClick={() => setCurrentTab('home')} className={`flex flex-col items-center gap-1 py-2 px-4 transition ${currentTab === 'home' ? 'text-orange-500' : t.textSecondary}`}>
+            <Home size={24} />
+            <span className="text-xs font-bold">Accueil</span>
+          </button>
+          <button onClick={() => setCurrentTab('players')} className={`flex flex-col items-center gap-1 py-2 px-4 transition ${currentTab === 'players' ? 'text-orange-500' : t.textSecondary}`}>
+            <Users size={24} />
+            <span className="text-xs font-bold">Joueurs</span>
+          </button>
+          <button onClick={() => setShowNewBattleForm(true)} className="flex flex-col items-center gap-1 py-2 px-4 rounded-2xl bg-orange-500 text-white font-bold -mt-8 w-16 h-16">
+            <Plus size={28} />
+            <span className="text-xs">Combat</span>
+          </button>
+          <button onClick={() => setCurrentTab('battles')} className={`flex flex-col items-center gap-1 py-2 px-4 transition ${currentTab === 'battles' ? 'text-orange-500' : t.textSecondary}`}>
+            <Zap size={24} />
+            <span className="text-xs font-bold">Combats</span>
+          </button>
+          <button onClick={() => setCurrentTab('teams')} className={`flex flex-col items-center gap-1 py-2 px-4 transition ${currentTab === 'teams' ? 'text-orange-500' : t.textSecondary}`}>
+            <Shield size={24} />
+            <span className="text-xs font-bold">Équipes</span>
+          </button>
+        </div>
       )}
 
-      {/* MODALS - Toujours au-dessus, indépendamment de la page */}
-      
+      {/* MODALS */}
+
       {/* Modal Nouveau Combat */}
       {showNewBattleForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-[9999] pointer-events-auto">
-          <div className={`w-full ${t.bgPrimary} rounded-t-3xl p-6 pb-24 max-h-[90vh] overflow-y-auto`}>
-            <h2 className={`text-2xl font-black ${t.text} mb-6`}>Nouveau combat</h2>
-            
-            <div className="space-y-6">
-              <div>
-                <label className={`${t.textSecondary} font-bold text-sm`}>FORMAT</label>
-                <select 
-                  value={newBattleData.format}
-                  onChange={(e) => setNewBattleData({...newBattleData, format: e.target.value})}
-                  className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
-                >
-                  <option value="1v1">1v1 (3 Pokémon)</option>
-                  <option value="2v2">2v2 (4 Pokémon)</option>
-                </select>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col">
+          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col`}>
+            <div className="p-6 flex-1 overflow-y-auto">
+              <h2 className={`text-2xl font-black ${t.text} mb-6`}>Nouveau combat</h2>
+              <div className="space-y-6">
+                <div>
+                  <label className={`${t.textSecondary} font-bold text-sm`}>FORMAT</label>
+                  <select value={newBattleData.format} onChange={(e) => setNewBattleData({...newBattleData, format: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2`}>
+                    <option value="1v1">1v1</option>
+                    <option value="2v2">2v2</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={`${t.textSecondary} font-bold text-sm`}>DATE</label>
+                  <input type="date" value={newBattleData.date} onChange={(e) => setNewBattleData({...newBattleData, date: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2`} />
+                </div>
+                <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
+                  <label className="text-orange-500 font-bold text-sm">JOUEUR 1</label>
+                  <select value={newBattleData.player1 || ''} onChange={(e) => setNewBattleData({...newBattleData, player1: e.target.value ? parseInt(e.target.value) : null})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2`}>
+                    <option value="">Choisir</option>
+                    {players.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                  </select>
+                </div>
+                <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
+                  <label className="text-red-500 font-bold text-sm">JOUEUR 2</label>
+                  <select value={newBattleData.player2 || ''} onChange={(e) => setNewBattleData({...newBattleData, player2: e.target.value ? parseInt(e.target.value) : null})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2`}>
+                    <option value="">Choisir</option>
+                    {players.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                  </select>
+                </div>
+                <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
+                  <label className={`${t.textSecondary} font-bold text-sm`}>GAGNANT</label>
+                  <select value={newBattleData.winner || ''} onChange={(e) => setNewBattleData({...newBattleData, winner: e.target.value})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2`}>
+                    <option value="">Choisir</option>
+                    {newBattleData.player1 && (<option value="player1">{players.find(p => p.id === newBattleData.player1)?.name}</option>)}
+                    {newBattleData.player2 && (<option value="player2">{players.find(p => p.id === newBattleData.player2)?.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={`${t.textSecondary} font-bold text-sm`}>NOTES</label>
+                  <textarea placeholder="..." value={newBattleData.notes} onChange={(e) => setNewBattleData({...newBattleData, notes: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2`} rows="3" />
+                </div>
               </div>
-
-              <div>
-                <label className={`${t.textSecondary} font-bold text-sm`}>JEU</label>
-                <select className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 ${t.inputFocus} outline-none`}>
-                  <option>Choisir</option>
-                </select>
-              </div>
-
-              <div>
-                <label className={`${t.textSecondary} font-bold text-sm`}>DATE</label>
-                <input 
-                  type="date" 
-                  value={newBattleData.date}
-                  onChange={(e) => setNewBattleData({...newBattleData, date: e.target.value})}
-                  className={`w-full border ${t.input} rounded-xl px-2 py-1 mt-2 ${t.inputFocus} outline-none text-xs`} 
-                  style={{fontSize: '14px'}}
-                />
-              </div>
-
-              <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
-                <label className="text-orange-500 font-bold text-sm">JOUEUR 1</label>
-                <select 
-                  value={newBattleData.player1 || ''}
-                  onChange={(e) => setNewBattleData({...newBattleData, player1: e.target.value ? parseInt(e.target.value) : null})}
-                  className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
-                >
-                  <option value="">Choisir joueur</option>
-                  {players.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
-                <label className="text-red-500 font-bold text-sm">JOUEUR 2</label>
-                <select 
-                  value={newBattleData.player2 || ''}
-                  onChange={(e) => setNewBattleData({...newBattleData, player2: e.target.value ? parseInt(e.target.value) : null})}
-                  className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
-                >
-                  <option value="">Choisir joueur</option>
-                  {players.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
-                <label className={`${t.textSecondary} font-bold text-sm`}>GAGNANT</label>
-                <select 
-                  value={newBattleData.winner || ''}
-                  onChange={(e) => setNewBattleData({...newBattleData, winner: e.target.value})}
-                  className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
-                >
-                  <option value="">Choisir le gagnant</option>
-                  {newBattleData.player1 && (
-                    <option value="player1">{players.find(p => p.id === newBattleData.player1)?.name}</option>
-                  )}
-                  {newBattleData.player2 && (
-                    <option value="player2">{players.find(p => p.id === newBattleData.player2)?.name}</option>
-                  )}
-                </select>
-              </div>
-
-              <div>
-                <label className={`${t.textSecondary} font-bold text-sm`}>NOTES</label>
-                <textarea 
-                  placeholder="Notes sur le combat..." 
-                  value={newBattleData.notes}
-                  onChange={(e) => setNewBattleData({...newBattleData, notes: e.target.value})}
-                  className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 ${t.inputFocus} outline-none`} 
-                  rows="4" 
-                />
-              </div>
-
+            </div>
+            <div className={`border-t ${t.headerBorder} p-6 bg-gradient-to-t ${isDark ? 'from-gray-800' : 'from-gray-50'}`}>
               <div className="flex gap-3">
-                <button
-                  onClick={() => setShowNewBattleForm(false)}
-                  className={`flex-1 ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} ${t.text} py-3 rounded-xl font-bold transition`}
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={recordBattle}
-                  className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black hover:bg-orange-600 transition"
-                >
-                  Enregistrer le combat
-                </button>
+                <button onClick={() => setShowNewBattleForm(false)} className={`flex-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Annuler</button>
+                <button onClick={recordBattle} className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black">Enregistrer</button>
               </div>
             </div>
           </div>
@@ -716,40 +501,17 @@ const PokemonBattleLogger = () => {
 
       {/* Modal Nouveau Joueur */}
       {showNewPlayerForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-[9999] pointer-events-auto">
-          <div className={`w-full ${t.bgPrimary} rounded-t-3xl p-6 pb-24`}>
-            <h2 className={`text-2xl font-black ${t.text} mb-4`}>Nouveau joueur</h2>
-            <input
-              type="text"
-              placeholder="Nom du joueur"
-              id="new-player-input"
-              className={`w-full border ${t.input} rounded-xl px-4 py-3 mb-4 ${t.inputFocus} outline-none`}
-              autoFocus
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowNewPlayerForm(false);
-                  document.getElementById('new-player-input').value = '';
-                }}
-                className={`flex-1 ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} ${t.text} py-3 rounded-xl font-bold transition`}
-              >
-                Annuler
-              </button>
-              <button
-                onClick={() => {
-                  const input = document.getElementById('new-player-input');
-                  const name = input.value.trim();
-                  if (name) {
-                    addPlayer(name);
-                    setShowNewPlayerForm(false);
-                    input.value = '';
-                  }
-                }}
-                className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black hover:bg-orange-600 transition"
-              >
-                Créer
-              </button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col">
+          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col`}>
+            <div className="p-6 flex-1">
+              <h2 className={`text-2xl font-black ${t.text} mb-4`}>Nouveau joueur</h2>
+              <input type="text" placeholder="Nom" id="player-input" className={`w-full border ${t.input} rounded-xl px-4 py-3`} autoFocus />
+            </div>
+            <div className={`border-t ${t.headerBorder} p-6 bg-gradient-to-t ${isDark ? 'from-gray-800' : 'from-gray-50'}`}>
+              <div className="flex gap-3">
+                <button onClick={() => setShowNewPlayerForm(false)} className={`flex-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Annuler</button>
+                <button onClick={() => { const input = document.getElementById('player-input'); if (input.value.trim()) { addPlayer(input.value.trim()); setShowNewPlayerForm(false); input.value = ''; } }} className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black">Créer</button>
+              </div>
             </div>
           </div>
         </div>
@@ -757,198 +519,122 @@ const PokemonBattleLogger = () => {
 
       {/* Modal Créer Équipe */}
       {showNewTeamForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-[9999] pointer-events-auto">
-          <div className={`w-full ${t.bgPrimary} rounded-t-3xl p-6 pb-24 max-h-[90vh] overflow-y-auto`}>
-            {teamSearchStep === 'create' ? (
-              <>
-                <h2 className={`text-2xl font-black ${t.text} mb-6`}>Créer une équipe</h2>
-                
-                <div className="space-y-6">
-                  <div>
-                    <label className={`${t.textSecondary} font-bold text-sm`}>NOM DE L'ÉQUIPE</label>
-                    <input 
-                      type="text"
-                      placeholder="Ex: Frontale, Spéciale..."
-                      value={newTeamData.name}
-                      onChange={(e) => setNewTeamData({...newTeamData, name: e.target.value})}
-                      className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
-                      autoFocus
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`${t.textSecondary} font-bold text-sm`}>PROPRIÉTAIRE</label>
-                    <select 
-                      value={newTeamData.owner || ''}
-                      onChange={(e) => setNewTeamData({...newTeamData, owner: e.target.value})}
-                      className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
-                    >
-                      <option value="">Choisir un joueur</option>
-                      {players.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className={`${t.textSecondary} font-bold text-sm mb-3 block`}>FORMAT</label>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setNewTeamData({...newTeamData, format: '1v1'})}
-                        className={`flex-1 py-3 rounded-xl font-black transition ${
-                          newTeamData.format === '1v1'
-                            ? 'bg-orange-500 text-white'
-                            : `${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text}`
-                        }`}
-                      >
-                        1v1 (3 Pokémon)
-                      </button>
-                      <button
-                        onClick={() => setNewTeamData({...newTeamData, format: '2v2'})}
-                        className={`flex-1 py-3 rounded-xl font-black transition ${
-                          newTeamData.format === '2v2'
-                            ? 'bg-orange-500 text-white'
-                            : `${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text}`
-                        }`}
-                      >
-                        2v2 (4 Pokémon)
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className={`${t.textSecondary} font-bold text-sm`}>POKÉMON ({newTeamData.pokemon.length}/{newTeamData.format === '1v1' ? 3 : 4})</label>
-                    <div className="mt-2 space-y-2">
-                      {newTeamData.pokemon.map((poke) => (
-                        <div key={poke.id} className={`${t.bgSecondary} rounded-lg p-3 flex items-center justify-between border ${t.border}`}>
-                          <div className="flex items-center gap-3">
-                            <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-10 h-10 object-contain" />
-                            <span className={`font-bold ${t.text}`}>{poke.name}</span>
-                          </div>
-                          <button
-                            onClick={() => setNewTeamData({...newTeamData, pokemon: newTeamData.pokemon.filter(p => p.id !== poke.id)})}
-                            className="text-red-500 hover:text-red-600"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      ))}
-                      {newTeamData.pokemon.length < (newTeamData.format === '1v1' ? 3 : 4) && (
-                        <button
-                          onClick={() => {
-                            setTeamSearchStep('pokemon');
-                            setSearchTerm('');
-                            setSearchResults([]);
-                          }}
-                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-black transition"
-                        >
-                          + Ajouter un Pokémon
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col">
+          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col`}>
+            <div className="p-6 flex-1 overflow-y-auto">
+              <h2 className={`text-2xl font-black ${t.text} mb-6`}>Créer une équipe</h2>
+              <div className="space-y-6">
+                <div>
+                  <label className={`${t.textSecondary} font-bold text-sm`}>NOM</label>
+                  <input type="text" placeholder="Ex: Frontale" value={newTeamData.name} onChange={(e) => setNewTeamData({...newTeamData, name: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2`} autoFocus />
+                </div>
+                <div>
+                  <label className={`${t.textSecondary} font-bold text-sm`}>PROPRIÉTAIRE</label>
+                  <select value={newTeamData.owner || ''} onChange={(e) => setNewTeamData({...newTeamData, owner: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2`}>
+                    <option value="">Choisir</option>
+                    {players.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                  </select>
+                </div>
+                <div>
+                  <label className={`${t.textSecondary} font-bold text-sm mb-3 block`}>FORMAT</label>
                   <div className="flex gap-3">
-                    <button
-                      onClick={() => {
-                        setShowNewTeamForm(false);
-                        setNewTeamData({ name: '', owner: null, pokemon: [], format: '2v2' });
-                      }}
-                      className={`flex-1 ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} ${t.text} py-3 rounded-xl font-bold transition`}
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (newTeamData.name.trim() && newTeamData.owner && newTeamData.pokemon.length > 0) {
-                          const owner = players.find(p => p.id === parseInt(newTeamData.owner));
-                          const newTeam = {
-                            id: Date.now(),
-                            name: newTeamData.name,
-                            owner: owner?.name,
-                            pokemon: newTeamData.pokemon,
-                            format: newTeamData.format,
-                          };
-                          setTeams([...teams, newTeam]);
-                          setShowNewTeamForm(false);
-                          setNewTeamData({ name: '', owner: null, pokemon: [], format: '2v2' });
-                        } else {
-                          alert('Veuillez remplir tous les champs et ajouter au moins un Pokémon');
-                        }
-                      }}
-                      className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black hover:bg-orange-600 transition"
-                    >
-                      Créer l'équipe
-                    </button>
+                    <button onClick={() => setNewTeamData({...newTeamData, format: '1v1'})} className={`flex-1 py-3 rounded-xl font-black ${newTeamData.format === '1v1' ? 'bg-orange-500 text-white' : `${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text}`}`}>1v1</button>
+                    <button onClick={() => setNewTeamData({...newTeamData, format: '2v2'})} className={`flex-1 py-3 rounded-xl font-black ${newTeamData.format === '2v2' ? 'bg-orange-500 text-white' : `${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text}`}`}>2v2</button>
                   </div>
                 </div>
-              </>
-            ) : teamSearchStep === 'pokemon' ? (
-              <>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className={`text-2xl font-black ${t.text}`}>Ajouter un Pokémon</h2>
-                  <button onClick={() => setTeamSearchStep('create')} className={`${t.textSecondary} hover:${t.text}`}>
-                    <ArrowLeft size={24} />
-                  </button>
-                </div>
-
-                <div className="relative mb-6">
-                  <Search className={`absolute left-4 top-3 ${t.textSecondary}`} size={20} />
-                  <input
-                    type="text"
-                    placeholder="Chercher un Pokémon..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      searchPokemon(e.target.value);
-                    }}
-                    className={`w-full border ${t.input} rounded-xl px-4 py-3 pl-12 ${t.inputFocus} outline-none`}
-                    autoFocus
-                  />
-                </div>
-
-                {searchLoading ? (
-                  <div className={`text-center ${t.textSecondary}`}>
-                    <Loader className="animate-spin mx-auto mb-2" />
-                    <p>Recherche en cours...</p>
-                  </div>
-                ) : searchTerm && searchResults.length === 0 ? (
-                  <div className={`${t.bgSecondary} rounded-2xl p-6 text-center border ${t.border} ${t.textSecondary}`}>
-                    Aucun résultat trouvé
-                  </div>
-                ) : searchTerm ? (
-                  <div className="space-y-2">
-                    {searchResults.map((poke) => (
-                      <button
-                        key={poke.pokeId}
-                        onClick={() => {
-                          const newPoke = {
-                            id: Date.now(),
-                            pokeId: poke.pokeId,
-                            name: poke.name,
-                            types: poke.types || [],
-                          };
-                          setNewTeamData({...newTeamData, pokemon: [...newTeamData.pokemon, newPoke]});
-                          setTeamSearchStep('create');
-                          setSearchTerm('');
-                        }}
-                        className={`w-full ${t.bgSecondary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}
-                      >
-                        <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-12 h-12 object-contain" />
-                        <div className="flex-1 text-left">
-                          <h3 className={`font-bold ${t.text}`}>{poke.name}</h3>
-                          <p className={`text-xs ${t.textSecondary}`}>#{poke.pokeId}</p>
+                <div>
+                  <label className={`${t.textSecondary} font-bold text-sm mb-3 block`}>POKÉMON ({(newTeamData.pokemon || []).length})</label>
+                  <div className="space-y-2 mb-4">
+                    {(newTeamData.pokemon || []).map(p => (
+                      <div key={p.id} className={`${t.bgPrimary} rounded-lg p-3 flex items-center justify-between border ${t.border}`}>
+                        <div className="flex items-center gap-2">
+                          <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-8 h-8 object-contain" />
+                          <span className={`font-bold ${t.text}`}>{p.name}</span>
                         </div>
-                      </button>
+                        <button onClick={() => setNewTeamData({...newTeamData, pokemon: newTeamData.pokemon.filter(pk => pk.id !== p.id)})} className="text-red-500 text-sm font-bold">×</button>
+                      </div>
                     ))}
                   </div>
-                ) : (
-                  <div className={`${t.bgSecondary} rounded-2xl p-6 text-center border ${t.border} ${t.textSecondary}`}>
-                    Commence à taper un nom...
-                  </div>
-                )}
-              </>
-            ) : null}
+                  <button onClick={() => setTeamSearchStep('pokemon')} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-black transition">+ Ajouter Pokémon</button>
+                </div>
+              </div>
+            </div>
+            <div className={`border-t ${t.headerBorder} p-6 bg-gradient-to-t ${isDark ? 'from-gray-800' : 'from-gray-50'}`}>
+              <div className="flex gap-3">
+                <button onClick={() => { setShowNewTeamForm(false); setNewTeamData({ name: '', owner: null, format: '2v2' }); }} className={`flex-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Annuler</button>
+                <button onClick={createTeam} className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black">Créer</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Recherche Pokémon pour Joueur */}
+      {addingPokemonToPlayer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col">
+          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col`}>
+            <div className="p-6 flex-1 overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className={`text-2xl font-black ${t.text}`}>Ajouter Pokémon</h2>
+                <button onClick={() => setAddingPokemonToPlayer(null)} className={`${t.textSecondary} text-2xl`}>×</button>
+              </div>
+              
+              <div className="relative mb-6">
+                <input type="text" placeholder="Chercher Pokémon..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); searchPokemon(e.target.value); }} className={`w-full border ${t.input} rounded-xl px-4 py-3`} autoFocus />
+              </div>
+
+              {searchLoading ? (
+                <div className={`text-center ${t.textSecondary}`}>Recherche...</div>
+              ) : searchTerm && searchResults.length === 0 ? (
+                <div className={`text-center ${t.textSecondary}`}>Aucun résultat</div>
+              ) : searchTerm ? (
+                <div className="space-y-2">
+                  {searchResults.map(poke => (
+                    <button key={poke.pokeId} onClick={() => { addPokemonToPlayer(addingPokemonToPlayer, poke); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
+                      <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-12 h-12 object-contain" />
+                      <p className={`font-black ${t.text}`}>{poke.name}</p>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-center ${t.textSecondary}`}>Commence à taper...</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Recherche Pokémon pour Équipe - Pendant la création */}
+      {showNewTeamForm && teamSearchStep === 'pokemon' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col">
+          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col`}>
+            <div className="p-6 flex-1 overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className={`text-2xl font-black ${t.text}`}>Ajouter Pokémon</h2>
+                <button onClick={() => setTeamSearchStep('create')} className={`${t.textSecondary} text-2xl`}>×</button>
+              </div>
+              
+              <div className="relative mb-6">
+                <input type="text" placeholder="Chercher Pokémon..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); searchPokemon(e.target.value); }} className={`w-full border ${t.input} rounded-xl px-4 py-3`} autoFocus />
+              </div>
+
+              {searchLoading ? (
+                <div className={`text-center ${t.textSecondary}`}>Recherche...</div>
+              ) : searchTerm && searchResults.length === 0 ? (
+                <div className={`text-center ${t.textSecondary}`}>Aucun résultat</div>
+              ) : searchTerm ? (
+                <div className="space-y-2">
+                  {searchResults.map(poke => (
+                    <button key={poke.pokeId} onClick={() => { setNewTeamData({...newTeamData, pokemon: [...(newTeamData.pokemon || []), { id: Date.now(), pokeId: poke.pokeId, name: poke.name }]}); setTeamSearchStep('create'); setSearchTerm(''); setSearchResults([]); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
+                      <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-12 h-12 object-contain" />
+                      <p className={`font-black ${t.text}`}>{poke.name}</p>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-center ${t.textSecondary}`}>Commence à taper...</div>
+              )}
+            </div>
           </div>
         </div>
       )}
