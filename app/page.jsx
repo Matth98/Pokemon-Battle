@@ -791,12 +791,26 @@ const PokemonBattleLogger = () => {
                   
                   {newBattleData.player1 && (
                     <div className="mt-3 pt-3 border-t border-gray-600">
-                      <p className={`text-xs font-bold ${t.textSecondary} mb-2`}>Pokémon du joueur</p>
-                      <div className="flex gap-2">
-                        <button onClick={() => setBattlePokemonSelecting('player1')} className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm transition">👥 Liste</button>
+                      <p className={`text-xs font-bold ${t.textSecondary} mb-2`}>Ajouter Pokémon</p>
+                      <div className="flex gap-2 mb-3">
                         <button onClick={() => setBattlePokemonSelecting('player1_team')} className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm transition">🛡️ Équipe</button>
                         <button onClick={() => setBattlePokemonSelecting('player1_new')} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-bold text-sm transition">➕ Ajouter</button>
                       </div>
+                      
+                      {/* Affichage Pokémon Joueur 1 */}
+                      {battleSelectedPokemon.player1.length > 0 && (
+                        <div className="space-y-2">
+                          {battleSelectedPokemon.player1.map(p => (
+                            <div key={p.id} className={`${t.bgPrimary} rounded-lg p-2 flex items-center justify-between border ${t.border}`}>
+                              <div className="flex items-center gap-2">
+                                <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-6 h-6 object-contain" />
+                                <span className={`font-bold text-sm ${t.text}`}>{p.name}</span>
+                              </div>
+                              <button onClick={() => setBattleSelectedPokemon({...battleSelectedPokemon, player1: battleSelectedPokemon.player1.filter(pk => pk.id !== p.id)})} className="text-red-500 hover:text-red-600 font-bold text-sm">×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -809,12 +823,26 @@ const PokemonBattleLogger = () => {
                   
                   {newBattleData.player2 && (
                     <div className="mt-3 pt-3 border-t border-gray-600">
-                      <p className={`text-xs font-bold ${t.textSecondary} mb-2`}>Pokémon du joueur</p>
-                      <div className="flex gap-2">
-                        <button onClick={() => setBattlePokemonSelecting('player2')} className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm transition">👥 Liste</button>
+                      <p className={`text-xs font-bold ${t.textSecondary} mb-2`}>Ajouter Pokémon</p>
+                      <div className="flex gap-2 mb-3">
                         <button onClick={() => setBattlePokemonSelecting('player2_team')} className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm transition">🛡️ Équipe</button>
                         <button onClick={() => setBattlePokemonSelecting('player2_new')} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-bold text-sm transition">➕ Ajouter</button>
                       </div>
+                      
+                      {/* Affichage Pokémon Joueur 2 */}
+                      {battleSelectedPokemon.player2.length > 0 && (
+                        <div className="space-y-2">
+                          {battleSelectedPokemon.player2.map(p => (
+                            <div key={p.id} className={`${t.bgPrimary} rounded-lg p-2 flex items-center justify-between border ${t.border}`}>
+                              <div className="flex items-center gap-2">
+                                <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-6 h-6 object-contain" />
+                                <span className={`font-bold text-sm ${t.text}`}>{p.name}</span>
+                              </div>
+                              <button onClick={() => setBattleSelectedPokemon({...battleSelectedPokemon, player2: battleSelectedPokemon.player2.filter(pk => pk.id !== p.id)})} className="text-red-500 hover:text-red-600 font-bold text-sm">×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -826,42 +854,6 @@ const PokemonBattleLogger = () => {
                     {newBattleData.player2 && (<option value="player2">{players.find(p => p.id === newBattleData.player2)?.name}</option>)}
                   </select>
                 </div>
-                
-                {/* Affichage Pokémon Joueur 1 */}
-                {newBattleData.player1 && battleSelectedPokemon.player1.length > 0 && (
-                  <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border border-orange-500`}>
-                    <label className="text-orange-500 font-bold text-sm mb-3 block">POKÉMON JOUEUR 1</label>
-                    <div className="space-y-2">
-                      {battleSelectedPokemon.player1.map(p => (
-                        <div key={p.id} className={`${t.bgPrimary} rounded-lg p-3 flex items-center justify-between border ${t.border}`}>
-                          <div className="flex items-center gap-2">
-                            <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-8 h-8 object-contain" />
-                            <span className={`font-bold ${t.text}`}>{p.name}</span>
-                          </div>
-                          <button onClick={() => setBattleSelectedPokemon({...battleSelectedPokemon, player1: battleSelectedPokemon.player1.filter(pk => pk.id !== p.id)})} className="text-red-500 hover:text-red-600 font-bold">×</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Affichage Pokémon Joueur 2 */}
-                {newBattleData.player2 && battleSelectedPokemon.player2.length > 0 && (
-                  <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border border-red-500`}>
-                    <label className="text-red-500 font-bold text-sm mb-3 block">POKÉMON JOUEUR 2</label>
-                    <div className="space-y-2">
-                      {battleSelectedPokemon.player2.map(p => (
-                        <div key={p.id} className={`${t.bgPrimary} rounded-lg p-3 flex items-center justify-between border ${t.border}`}>
-                          <div className="flex items-center gap-2">
-                            <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-8 h-8 object-contain" />
-                            <span className={`font-bold ${t.text}`}>{p.name}</span>
-                          </div>
-                          <button onClick={() => setBattleSelectedPokemon({...battleSelectedPokemon, player2: battleSelectedPokemon.player2.filter(pk => pk.id !== p.id)})} className="text-red-500 hover:text-red-600 font-bold">×</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 <div>
                   <label className={`${t.textSecondary} font-bold text-sm`}>NOTES</label>
                   <textarea placeholder="..." value={newBattleData.notes} onChange={(e) => setNewBattleData({...newBattleData, notes: e.target.value})} className={`w-full max-w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border overflow-hidden`} rows="3" />
@@ -1161,46 +1153,6 @@ const PokemonBattleLogger = () => {
         </div>
       )}
 
-      {/* Modal Sélectionner Pokémon du Joueur pour Combat */}
-      {battlePokemonSelecting && !battlePokemonSelecting.includes('_new') && !battlePokemonSelecting.includes('_team') && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col overflow-hidden">
-          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col overflow-x-hidden`}>
-            <div className="p-6 flex-1 overflow-y-auto w-full box-border">
-              <h2 className={`text-2xl font-black ${t.text} mb-6`}>Sélectionner Pokémon</h2>
-              {(() => {
-                const playerId = battlePokemonSelecting === 'player1' ? newBattleData.player1 : newBattleData.player2;
-                const player = players.find(p => p.id === playerId);
-                const playerKey = battlePokemonSelecting === 'player1' ? 'player1' : 'player2';
-                
-                return (
-                  <div className="space-y-2">
-                    {!player?.pokemon || player.pokemon.length === 0 ? (
-                      <div className={`text-center ${t.textSecondary}`}>Aucun Pokémon dans la liste du joueur</div>
-                    ) : (
-                      player.pokemon.map(p => (
-                        <button key={p.id} onClick={() => { 
-                          setBattleSelectedPokemon({
-                            ...battleSelectedPokemon,
-                            [playerKey]: [...battleSelectedPokemon[playerKey], { id: Date.now(), pokeId: p.pokeId, name: p.name }]
-                          });
-                          setBattlePokemonSelecting(null);
-                        }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
-                          <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-12 h-12 object-contain" />
-                          <p className={`font-black ${t.text}`}>{p.name}</p>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-            <div className={`border-t ${t.headerBorder} p-6 bg-gradient-to-t ${isDark ? 'from-gray-800' : 'from-gray-50'}`}>
-              <button onClick={() => setBattlePokemonSelecting(null)} className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Fermer</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal Sélectionner Équipe pour Combat */}
       {battlePokemonSelecting && battlePokemonSelecting.includes('_team') && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col overflow-hidden">
@@ -1253,38 +1205,69 @@ const PokemonBattleLogger = () => {
                 <input type="text" placeholder="Chercher Pokémon..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); searchPokemon(e.target.value); }} className={`w-full border ${t.input} rounded-xl px-4 py-3`} autoFocus />
               </div>
 
-              {searchLoading ? (
-                <div className={`text-center ${t.textSecondary}`}>Recherche en cours...</div>
-              ) : searchTerm && searchResults.length === 0 ? (
-                <div className={`text-center ${t.textSecondary}`}>Aucun résultat</div>
-              ) : searchTerm ? (
-                <div className="space-y-2">
-                  {searchResults.map(poke => (
-                    <button key={poke.pokeId} onClick={() => {
-                      const playerKey = battlePokemonSelecting === 'player1_new' ? 'player1' : 'player2';
-                      const playerId = battlePokemonSelecting === 'player1_new' ? newBattleData.player1 : newBattleData.player2;
-                      
-                      // Ajouter à la liste perso du joueur
-                      addPokemonToPlayer(playerId, poke);
-                      
-                      // Ajouter aux pokémon sélectionnés du combat
-                      setBattleSelectedPokemon({
-                        ...battleSelectedPokemon,
-                        [playerKey]: [...battleSelectedPokemon[playerKey], { id: Date.now(), pokeId: poke.pokeId, name: poke.name }]
-                      });
-                      
-                      setBattlePokemonSelecting(null);
-                      setSearchTerm('');
-                      setSearchResults([]);
-                    }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
-                      <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-12 h-12 object-contain" />
-                      <p className={`font-black ${t.text}`}>{poke.name}</p>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className={`text-center ${t.textSecondary}`}>Commence à taper un nom...</div>
-              )}
+              {(() => {
+                const playerId = battlePokemonSelecting === 'player1_new' ? newBattleData.player1 : newBattleData.player2;
+                const player = players.find(p => p.id === playerId);
+
+                // Si recherche en cours
+                if (searchTerm) {
+                  return searchLoading ? (
+                    <div className={`text-center ${t.textSecondary}`}>Recherche en cours...</div>
+                  ) : searchResults.length === 0 ? (
+                    <div className={`text-center ${t.textSecondary}`}>Aucun résultat</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {searchResults.map(poke => (
+                        <button key={poke.pokeId} onClick={() => {
+                          const playerKey = battlePokemonSelecting === 'player1_new' ? 'player1' : 'player2';
+                          
+                          // Ajouter à la liste perso du joueur
+                          addPokemonToPlayer(playerId, poke);
+                          
+                          // Ajouter aux pokémon sélectionnés du combat
+                          setBattleSelectedPokemon({
+                            ...battleSelectedPokemon,
+                            [playerKey]: [...battleSelectedPokemon[playerKey], { id: Date.now(), pokeId: poke.pokeId, name: poke.name }]
+                          });
+                          
+                          setBattlePokemonSelecting(null);
+                          setSearchTerm('');
+                          setSearchResults([]);
+                        }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
+                          <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-12 h-12 object-contain" />
+                          <p className={`font-black ${t.text}`}>{poke.name}</p>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                }
+
+                // Si pas de recherche, afficher la liste perso
+                return (
+                  <div>
+                    {(!player?.pokemon || player.pokemon.length === 0) ? (
+                      <div className={`text-center ${t.textSecondary}`}>Aucun Pokémon dans la liste du joueur</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {player.pokemon.map(p => (
+                          <button key={p.id} onClick={() => {
+                            const playerKey = battlePokemonSelecting === 'player1_new' ? 'player1' : 'player2';
+                            setBattleSelectedPokemon({
+                              ...battleSelectedPokemon,
+                              [playerKey]: [...battleSelectedPokemon[playerKey], { id: Date.now(), pokeId: p.pokeId, name: p.name }]
+                            });
+                            setBattlePokemonSelecting(null);
+                            setSearchTerm('');
+                          }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
+                            <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-12 h-12 object-contain" />
+                            <p className={`font-black ${t.text}`}>{p.name}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <div className={`border-t ${t.headerBorder} p-6 bg-gradient-to-t ${isDark ? 'from-gray-800' : 'from-gray-50'}`}>
               <button onClick={() => { setBattlePokemonSelecting(null); setSearchTerm(''); setSearchResults([]); }} className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Fermer</button>
