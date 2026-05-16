@@ -46,6 +46,7 @@ const PokemonBattleLogger = () => {
   const [showNewPlayerForm, setShowNewPlayerForm] = useState(false);
   const [showNewBattleForm, setShowNewBattleForm] = useState(false);
   const [showNewTeamForm, setShowNewTeamForm] = useState(false);
+  const [teamFormErrors, setTeamFormErrors] = useState({ name: false, owner: false, pokemon: false });
 
   const [newBattleData, setNewBattleData] = useState({
     format: '1v1',
@@ -179,8 +180,16 @@ const PokemonBattleLogger = () => {
   };
 
   const createTeam = () => {
-    if (!newTeamData.name.trim() || !newTeamData.owner) {
-      alert('Remplissez le nom et le propriétaire');
+    const maxPokemon = newTeamData.format === '1v1' ? 3 : 4;
+    const errors = {
+      name: !newTeamData.name.trim(),
+      owner: !newTeamData.owner,
+      pokemon: !newTeamData.pokemon || newTeamData.pokemon.length === 0 || newTeamData.pokemon.length > maxPokemon
+    };
+    
+    setTeamFormErrors(errors);
+    
+    if (errors.name || errors.owner || errors.pokemon) {
       return;
     }
 
@@ -834,15 +843,17 @@ const PokemonBattleLogger = () => {
               <h2 className={`text-2xl font-black ${t.text} mb-6`}>Créer une équipe</h2>
               <div className="space-y-6">
                 <div>
-                  <label className={`${t.textSecondary} font-bold text-sm`}>NOM</label>
-                  <input type="text" placeholder="Ex: Frontale" value={newTeamData.name} onChange={(e) => setNewTeamData({...newTeamData, name: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2`} autoFocus />
+                  <label className={`${teamFormErrors.name ? 'text-red-500' : t.textSecondary} font-bold text-sm`}>NOM</label>
+                  <input type="text" placeholder="Ex: Frontale" value={newTeamData.name} onChange={(e) => { setNewTeamData({...newTeamData, name: e.target.value}); setTeamFormErrors({...teamFormErrors, name: false}); }} className={`w-full border ${teamFormErrors.name ? 'border-red-500' : t.input} rounded-xl px-4 py-3 mt-2`} autoFocus />
+                  {teamFormErrors.name && <p className="text-red-500 text-xs font-bold mt-1">Ce champ est requis</p>}
                 </div>
                 <div>
-                  <label className={`${t.textSecondary} font-bold text-sm`}>PROPRIÉTAIRE</label>
-                  <select value={newTeamData.owner || ''} onChange={(e) => setNewTeamData({...newTeamData, owner: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2`}>
+                  <label className={`${teamFormErrors.owner ? 'text-red-500' : t.textSecondary} font-bold text-sm`}>PROPRIÉTAIRE</label>
+                  <select value={newTeamData.owner || ''} onChange={(e) => { setNewTeamData({...newTeamData, owner: e.target.value}); setTeamFormErrors({...teamFormErrors, owner: false}); }} className={`w-full border ${teamFormErrors.owner ? 'border-red-500' : t.input} rounded-xl px-4 py-3 mt-2`}>
                     <option value="">Choisir</option>
                     {players.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
                   </select>
+                  {teamFormErrors.owner && <p className="text-red-500 text-xs font-bold mt-1">Ce champ est requis</p>}
                 </div>
                 <div>
                   <label className={`${t.textSecondary} font-bold text-sm mb-3 block`}>FORMAT</label>
@@ -852,25 +863,43 @@ const PokemonBattleLogger = () => {
                   </div>
                 </div>
                 <div>
-                  <label className={`${t.textSecondary} font-bold text-sm mb-3 block`}>POKÉMON ({(newTeamData.pokemon || []).length})</label>
-                  <div className="space-y-2 mb-4">
-                    {(newTeamData.pokemon || []).map(p => (
-                      <div key={p.id} className={`${t.bgPrimary} rounded-lg p-3 flex items-center justify-between border ${t.border}`}>
-                        <div className="flex items-center gap-2">
-                          <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-8 h-8 object-contain" />
-                          <span className={`font-bold ${t.text}`}>{p.name}</span>
+                  <label className={`${t.textSecondary} font-bold text-sm mb-3 block`}>POKÉMON ({(newTeamData.pokemon || []).length}/{newTeamData.format === '1v1' ? 3 : 4})</label>
+                  {(() => {
+                    const maxPokemon = newTeamData.format === '1v1' ? 3 : 4;
+                    const pokemonCount = (newTeamData.pokemon || []).length;
+                    
+                    return (
+                      <>
+                        <div className="space-y-2 mb-4">
+                          {(newTeamData.pokemon || []).map(p => (
+                            <div key={p.id} className={`${t.bgPrimary} rounded-lg p-3 flex items-center justify-between border ${t.border}`}>
+                              <div className="flex items-center gap-2">
+                                <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-8 h-8 object-contain" />
+                                <span className={`font-bold ${t.text}`}>{p.name}</span>
+                              </div>
+                              <button onClick={() => setNewTeamData({...newTeamData, pokemon: newTeamData.pokemon.filter(pk => pk.id !== p.id)})} className="text-red-500 text-sm font-bold">×</button>
+                            </div>
+                          ))}
                         </div>
-                        <button onClick={() => setNewTeamData({...newTeamData, pokemon: newTeamData.pokemon.filter(pk => pk.id !== p.id)})} className="text-red-500 text-sm font-bold">×</button>
-                      </div>
-                    ))}
-                  </div>
-                  <button onClick={() => setTeamSearchStep('pokemon')} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-black transition">+ Ajouter Pokémon</button>
+                        
+                        {teamFormErrors.pokemon && (
+                          <>
+                            {pokemonCount === 0 && <p className="text-red-500 font-bold text-sm mb-3">⚠️ Ajoute {maxPokemon} Pokémon (0 ajoutés, {maxPokemon} requis)</p>}
+                            {pokemonCount > 0 && pokemonCount < maxPokemon && <p className="text-red-500 font-bold text-sm mb-3">⚠️ Ajoute {maxPokemon - pokemonCount} Pokémon de plus ({pokemonCount} ajoutés, {maxPokemon} requis)</p>}
+                            {pokemonCount > maxPokemon && <p className="text-red-500 font-bold text-sm mb-3">⚠️ Retire {pokemonCount - maxPokemon} Pokémon ({pokemonCount} ajoutés, {maxPokemon} requis)</p>}
+                          </>
+                        )}
+                        
+                        <button onClick={() => setTeamSearchStep('pokemon')} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-black transition">+ Ajouter Pokémon</button>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
             <div className={`border-t ${t.headerBorder} p-6 bg-gradient-to-t ${isDark ? 'from-gray-800' : 'from-gray-50'}`}>
               <div className="flex gap-3">
-                <button onClick={() => { setShowNewTeamForm(false); setNewTeamData({ name: '', owner: null, format: '2v2', pokemon: [] }); setTeamSearchStep('create'); }} className={`flex-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Annuler</button>
+                <button onClick={() => { setShowNewTeamForm(false); setNewTeamData({ name: '', owner: null, format: '2v2', pokemon: [] }); setTeamFormErrors({ name: false, owner: false, pokemon: false }); setTeamSearchStep('create'); }} className={`flex-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Annuler</button>
                 <button onClick={createTeam} className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black">Créer</button>
               </div>
             </div>
