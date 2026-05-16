@@ -162,7 +162,35 @@ const PokemonBattleLogger = () => {
 
     setBattles([...battles, { id: Date.now(), ...newBattleData }]);
 
-    const updatedPlayers = players.map(p => {
+    // Ajouter les pokémon sélectionnés à la liste perso des joueurs
+    let updatedPlayers = players.map(p => {
+      let newPokemon = [];
+      
+      if (p.id === newBattleData.player1) {
+        newPokemon = battleSelectedPokemon.player1;
+      } else if (p.id === newBattleData.player2) {
+        newPokemon = battleSelectedPokemon.player2;
+      }
+      
+      if (newPokemon.length > 0) {
+        const currentPokemonIds = p.pokemon?.map(pk => pk.pokeId) || [];
+        const pokemonToAdd = newPokemon.filter(np => !currentPokemonIds.includes(np.pokeId)).map(np => ({
+          id: Date.now() + Math.random(),
+          pokeId: np.pokeId,
+          name: np.name,
+          level: 50
+        }));
+        
+        return {
+          ...p,
+          pokemon: [...(p.pokemon || []), ...pokemonToAdd]
+        };
+      }
+      return p;
+    });
+
+    // Mettre à jour les stats
+    updatedPlayers = updatedPlayers.map(p => {
       const isWinner = (newBattleData.winner === 'player1' && p.id === newBattleData.player1) || 
                        (newBattleData.winner === 'player2' && p.id === newBattleData.player2);
       if (p.id === newBattleData.player1 || p.id === newBattleData.player2) {
@@ -176,9 +204,11 @@ const PokemonBattleLogger = () => {
       }
       return p;
     });
+    
     setPlayers(updatedPlayers);
 
     setNewBattleData({ format: '1v1', player1: null, player2: null, date: new Date().toISOString().split('T')[0], notes: '', winner: null });
+    setBattleSelectedPokemon({ player1: [], player2: [] });
     setShowNewBattleForm(false);
   };
 
@@ -1217,21 +1247,20 @@ const PokemonBattleLogger = () => {
               <h2 className={`text-2xl font-black ${t.text} mb-6`}>Sélectionner Équipe</h2>
               {(() => {
                 const playerId = battlePokemonSelecting === 'player1_team' ? newBattleData.player1 : newBattleData.player2;
-                const playerTeams = teams.filter(t => t.ownerId === playerId);
+                const playerTeams = teams.filter(t => t.ownerId === playerId && t.format === newBattleData.format);
                 const playerKey = battlePokemonSelecting === 'player1_team' ? 'player1' : 'player2';
                 
                 return (
                   <div className="space-y-2">
                     {playerTeams.length === 0 ? (
-                      <div className={`text-center ${t.textSecondary}`}>Aucune équipe pour ce joueur</div>
+                      <div className={`text-center ${t.textSecondary}`}>Aucune équipe au format {newBattleData.format}</div>
                     ) : (
                       playerTeams.map(team => (
                         <button key={team.id} onClick={() => {
-                          // Ajouter tous les pokémon de l'équipe
-                          const newPokemon = team.pokemon.map(p => ({ id: Date.now() + Math.random(), pokeId: p.pokeId, name: p.name }));
+                          // Remplacer complètement la sélection avec l'équipe
                           setBattleSelectedPokemon({
                             ...battleSelectedPokemon,
-                            [playerKey]: [...battleSelectedPokemon[playerKey], ...newPokemon]
+                            [playerKey]: team.pokemon.map(p => ({ id: Date.now() + Math.random(), pokeId: p.pokeId, name: p.name }))
                           });
                           setBattlePokemonSelecting(null);
                         }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition border ${t.border} text-left`}>
@@ -1264,6 +1293,9 @@ const PokemonBattleLogger = () => {
               {(() => {
                 const playerId = battlePokemonSelecting === 'player1_new' ? newBattleData.player1 : newBattleData.player2;
                 const player = players.find(p => p.id === playerId);
+                const maxPokemon = newBattleData.format === '1v1' ? 3 : 4;
+                const playerKey = battlePokemonSelecting === 'player1_new' ? 'player1' : 'player2';
+                const currentCount = battleSelectedPokemon[playerKey].length;
 
                 // Si recherche en cours
                 if (searchTerm) {
@@ -1274,22 +1306,23 @@ const PokemonBattleLogger = () => {
                   ) : (
                     <div className="space-y-2">
                       {searchResults.map(poke => (
-                        <button key={poke.pokeId} onClick={() => {
-                          const playerKey = battlePokemonSelecting === 'player1_new' ? 'player1' : 'player2';
-                          
-                          // Ajouter à la liste perso du joueur
-                          addPokemonToPlayer(playerId, poke);
-                          
-                          // Ajouter aux pokémon sélectionnés du combat
-                          setBattleSelectedPokemon({
-                            ...battleSelectedPokemon,
-                            [playerKey]: [...battleSelectedPokemon[playerKey], { id: Date.now(), pokeId: poke.pokeId, name: poke.name }]
-                          });
-                          
-                          setBattlePokemonSelecting(null);
-                          setSearchTerm('');
-                          setSearchResults([]);
-                        }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
+                        <button 
+                          key={poke.pokeId} 
+                          onClick={() => {
+                            if (currentCount < maxPokemon) {
+                              setBattleSelectedPokemon({
+                                ...battleSelectedPokemon,
+                                [playerKey]: [...battleSelectedPokemon[playerKey], { id: Date.now(), pokeId: poke.pokeId, name: poke.name }]
+                              });
+                              
+                              setBattlePokemonSelecting(null);
+                              setSearchTerm('');
+                              setSearchResults([]);
+                            }
+                          }}
+                          disabled={currentCount >= maxPokemon}
+                          className={`w-full ${t.bgPrimary} rounded-2xl p-4 ${currentCount >= maxPokemon ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md transition'} flex items-center gap-4 border ${t.border}`}
+                        >
                           <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-12 h-12 object-contain" />
                           <p className={`font-black ${t.text}`}>{poke.name}</p>
                         </button>
@@ -1306,15 +1339,21 @@ const PokemonBattleLogger = () => {
                     ) : (
                       <div className="space-y-2">
                         {player.pokemon.map(p => (
-                          <button key={p.id} onClick={() => {
-                            const playerKey = battlePokemonSelecting === 'player1_new' ? 'player1' : 'player2';
-                            setBattleSelectedPokemon({
-                              ...battleSelectedPokemon,
-                              [playerKey]: [...battleSelectedPokemon[playerKey], { id: Date.now(), pokeId: p.pokeId, name: p.name }]
-                            });
-                            setBattlePokemonSelecting(null);
-                            setSearchTerm('');
-                          }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
+                          <button 
+                            key={p.id} 
+                            onClick={() => {
+                              if (currentCount < maxPokemon) {
+                                setBattleSelectedPokemon({
+                                  ...battleSelectedPokemon,
+                                  [playerKey]: [...battleSelectedPokemon[playerKey], { id: Date.now(), pokeId: p.pokeId, name: p.name }]
+                                });
+                                setBattlePokemonSelecting(null);
+                                setSearchTerm('');
+                              }
+                            }}
+                            disabled={currentCount >= maxPokemon}
+                            className={`w-full ${t.bgPrimary} rounded-2xl p-4 ${currentCount >= maxPokemon ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md transition'} flex items-center gap-4 border ${t.border}`}
+                          >
                             <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-12 h-12 object-contain" />
                             <p className={`font-black ${t.text}`}>{p.name}</p>
                           </button>
