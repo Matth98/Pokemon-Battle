@@ -695,25 +695,25 @@ const PokemonBattleLogger = () => {
 
       {/* Bottom Menu - Hidden when modals open */}
       {!showNewBattleForm && !showNewPlayerForm && !showNewTeamForm && (
-        <div className={`fixed bottom-0 left-0 right-0 ${t.headerBg} border-t ${t.headerBorder} flex justify-around items-center px-4 py-4 z-20`}>
-          <button onClick={() => setCurrentTab('home')} className={`flex flex-col items-center gap-1 py-2 px-4 transition ${currentTab === 'home' ? 'text-orange-500' : t.textSecondary}`}>
-            <Home size={24} />
+        <div className={`fixed bottom-0 left-0 right-0 ${t.headerBg} border-t ${t.headerBorder} flex justify-around items-center px-2 py-3 z-20`}>
+          <button onClick={() => setCurrentTab('home')} className={`flex flex-col items-center gap-0.5 py-1 px-2 transition ${currentTab === 'home' ? 'text-orange-500' : t.textSecondary}`}>
+            <Home size={20} />
             <span className="text-xs font-bold">Accueil</span>
           </button>
-          <button onClick={() => setCurrentTab('players')} className={`flex flex-col items-center gap-1 py-2 px-4 transition ${currentTab === 'players' ? 'text-orange-500' : t.textSecondary}`}>
-            <Users size={24} />
+          <button onClick={() => setCurrentTab('players')} className={`flex flex-col items-center gap-0.5 py-1 px-2 transition ${currentTab === 'players' ? 'text-orange-500' : t.textSecondary}`}>
+            <Users size={20} />
             <span className="text-xs font-bold">Joueurs</span>
           </button>
-          <button onClick={() => setShowNewBattleForm(true)} className="flex flex-col items-center gap-1 py-2 px-4 rounded-2xl bg-orange-500 text-white font-bold -mt-8 w-16 h-16">
-            <Plus size={28} />
+          <button onClick={() => setShowNewBattleForm(true)} className="flex flex-col items-center gap-0.5 py-1 px-2 rounded-2xl bg-orange-500 text-white font-bold -mt-6 w-14 h-14">
+            <Plus size={24} />
             <span className="text-xs">Combat</span>
           </button>
-          <button onClick={() => setCurrentTab('battles')} className={`flex flex-col items-center gap-1 py-2 px-4 transition ${currentTab === 'battles' ? 'text-orange-500' : t.textSecondary}`}>
-            <Zap size={24} />
+          <button onClick={() => setCurrentTab('battles')} className={`flex flex-col items-center gap-0.5 py-1 px-2 transition ${currentTab === 'battles' ? 'text-orange-500' : t.textSecondary}`}>
+            <Zap size={20} />
             <span className="text-xs font-bold">Combats</span>
           </button>
-          <button onClick={() => setCurrentTab('teams')} className={`flex flex-col items-center gap-1 py-2 px-4 transition ${currentTab === 'teams' ? 'text-orange-500' : t.textSecondary}`}>
-            <Shield size={24} />
+          <button onClick={() => setCurrentTab('teams')} className={`flex flex-col items-center gap-0.5 py-1 px-2 transition ${currentTab === 'teams' ? 'text-orange-500' : t.textSecondary}`}>
+            <Shield size={20} />
             <span className="text-xs font-bold">Équipes</span>
           </button>
         </div>
@@ -730,32 +730,32 @@ const PokemonBattleLogger = () => {
               <div className="space-y-6">
                 <div>
                   <label className={`${t.textSecondary} font-bold text-sm`}>FORMAT</label>
-                  <select value={newBattleData.format} onChange={(e) => setNewBattleData({...newBattleData, format: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2`}>
+                  <select value={newBattleData.format} onChange={(e) => setNewBattleData({...newBattleData, format: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border`}>
                     <option value="1v1">1v1</option>
                     <option value="2v2">2v2</option>
                   </select>
                 </div>
                 <div>
                   <label className={`${t.textSecondary} font-bold text-sm`}>DATE</label>
-                  <input type="date" value={newBattleData.date} onChange={(e) => setNewBattleData({...newBattleData, date: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2`} />
+                  <input type="date" value={newBattleData.date} onChange={(e) => setNewBattleData({...newBattleData, date: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border`} />
                 </div>
                 <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
                   <label className="text-orange-500 font-bold text-sm">JOUEUR 1</label>
-                  <select value={newBattleData.player1 || ''} onChange={(e) => setNewBattleData({...newBattleData, player1: e.target.value ? parseInt(e.target.value) : null})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2`}>
+                  <select value={newBattleData.player1 || ''} onChange={(e) => setNewBattleData({...newBattleData, player1: e.target.value ? parseInt(e.target.value) : null})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2 box-border`}>
                     <option value="">Choisir</option>
                     {players.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
                   </select>
                 </div>
                 <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
                   <label className="text-red-500 font-bold text-sm">JOUEUR 2</label>
-                  <select value={newBattleData.player2 || ''} onChange={(e) => setNewBattleData({...newBattleData, player2: e.target.value ? parseInt(e.target.value) : null})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2`}>
+                  <select value={newBattleData.player2 || ''} onChange={(e) => setNewBattleData({...newBattleData, player2: e.target.value ? parseInt(e.target.value) : null})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2 box-border`}>
                     <option value="">Choisir</option>
                     {players.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
                   </select>
                 </div>
                 <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
                   <label className={`${t.textSecondary} font-bold text-sm`}>GAGNANT</label>
-                  <select value={newBattleData.winner || ''} onChange={(e) => setNewBattleData({...newBattleData, winner: e.target.value})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2`}>
+                  <select value={newBattleData.winner || ''} onChange={(e) => setNewBattleData({...newBattleData, winner: e.target.value})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2 box-border`}>
                     <option value="">Choisir</option>
                     {newBattleData.player1 && (<option value="player1">{players.find(p => p.id === newBattleData.player1)?.name}</option>)}
                     {newBattleData.player2 && (<option value="player2">{players.find(p => p.id === newBattleData.player2)?.name}</option>)}
@@ -763,7 +763,7 @@ const PokemonBattleLogger = () => {
                 </div>
                 <div>
                   <label className={`${t.textSecondary} font-bold text-sm`}>NOTES</label>
-                  <textarea placeholder="..." value={newBattleData.notes} onChange={(e) => setNewBattleData({...newBattleData, notes: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2`} rows="3" />
+                  <textarea placeholder="..." value={newBattleData.notes} onChange={(e) => setNewBattleData({...newBattleData, notes: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border`} rows="3" />
                 </div>
               </div>
             </div>
