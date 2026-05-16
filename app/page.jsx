@@ -159,6 +159,7 @@ const PokemonBattleLogger = () => {
       return p;
     });
     setPlayers(newPlayers);
+    setSelectedPlayer(newPlayers.find(p => p.id === playerId));
     setAddingPokemonToPlayer(null);
     setSearchTerm('');
     setSearchResults([]);
@@ -561,7 +562,7 @@ const PokemonBattleLogger = () => {
             </div>
             <div className={`border-t ${t.headerBorder} p-6 bg-gradient-to-t ${isDark ? 'from-gray-800' : 'from-gray-50'}`}>
               <div className="flex gap-3">
-                <button onClick={() => { setShowNewTeamForm(false); setNewTeamData({ name: '', owner: null, format: '2v2' }); }} className={`flex-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Annuler</button>
+                <button onClick={() => { setShowNewTeamForm(false); setNewTeamData({ name: '', owner: null, format: '2v2', pokemon: [] }); setTeamSearchStep('create'); }} className={`flex-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text} py-3 rounded-xl font-bold`}>Annuler</button>
                 <button onClick={createTeam} className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black">Créer</button>
               </div>
             </div>
@@ -606,12 +607,12 @@ const PokemonBattleLogger = () => {
 
       {/* Modal Recherche Pokémon pour Équipe - Pendant la création */}
       {showNewTeamForm && teamSearchStep === 'pokemon' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col">
-          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col`}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col pointer-events-auto">
+          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col pointer-events-auto`}>
             <div className="p-6 flex-1 overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
-                <h2 className={`text-2xl font-black ${t.text}`}>Ajouter Pokémon</h2>
-                <button onClick={() => setTeamSearchStep('create')} className={`${t.textSecondary} text-2xl`}>×</button>
+                <h2 className={`text-2xl font-black ${t.text}`}>Ajouter Pokémon à l'équipe</h2>
+                <button onClick={() => setTeamSearchStep('create')} className={`${t.textSecondary} text-2xl hover:text-white`}>×</button>
               </div>
               
               <div className="relative mb-6">
@@ -619,20 +620,26 @@ const PokemonBattleLogger = () => {
               </div>
 
               {searchLoading ? (
-                <div className={`text-center ${t.textSecondary}`}>Recherche...</div>
+                <div className={`text-center ${t.textSecondary}`}>Recherche en cours...</div>
               ) : searchTerm && searchResults.length === 0 ? (
                 <div className={`text-center ${t.textSecondary}`}>Aucun résultat</div>
               ) : searchTerm ? (
                 <div className="space-y-2">
                   {searchResults.map(poke => (
-                    <button key={poke.pokeId} onClick={() => { setNewTeamData({...newTeamData, pokemon: [...(newTeamData.pokemon || []), { id: Date.now(), pokeId: poke.pokeId, name: poke.name }]}); setTeamSearchStep('create'); setSearchTerm(''); setSearchResults([]); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
+                    <button key={poke.pokeId} onClick={() => { 
+                      const newPoke = { id: Date.now(), pokeId: poke.pokeId, name: poke.name };
+                      setNewTeamData({...newTeamData, pokemon: [...(newTeamData.pokemon || []), newPoke]});
+                      setSearchTerm('');
+                      setSearchResults([]);
+                      setTeamSearchStep('create');
+                    }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}>
                       <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-12 h-12 object-contain" />
                       <p className={`font-black ${t.text}`}>{poke.name}</p>
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className={`text-center ${t.textSecondary}`}>Commence à taper...</div>
+                <div className={`text-center ${t.textSecondary}`}>Commence à taper un nom...</div>
               )}
             </div>
           </div>
