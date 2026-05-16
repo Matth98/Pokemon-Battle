@@ -52,7 +52,9 @@ const PokemonBattleLogger = () => {
     name: '',
     owner: null,
     pokemon: [],
+    format: '2v2',
   });
+  const [teamSearchStep, setTeamSearchStep] = useState('create');
 
   // Charger le thème du localStorage
   useEffect(() => {
@@ -916,69 +918,196 @@ const PokemonBattleLogger = () => {
       {showNewTeamForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50">
           <div className={`w-full ${t.bgPrimary} rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto`}>
-            <h2 className={`text-2xl font-black ${t.text} mb-6`}>Créer une équipe</h2>
-            
-            <div className="space-y-6">
-              <div>
-                <label className={`${t.textSecondary} font-bold text-sm`}>NOM DE L'ÉQUIPE</label>
-                <input 
-                  type="text"
-                  placeholder="Ex: Frontale, Spéciale..."
-                  value={newTeamData.name}
-                  onChange={(e) => setNewTeamData({...newTeamData, name: e.target.value})}
-                  className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
-                  autoFocus
-                />
-              </div>
+            {teamSearchStep === 'create' ? (
+              <>
+                <h2 className={`text-2xl font-black ${t.text} mb-6`}>Créer une équipe</h2>
+                
+                <div className="space-y-6">
+                  <div>
+                    <label className={`${t.textSecondary} font-bold text-sm`}>NOM DE L'ÉQUIPE</label>
+                    <input 
+                      type="text"
+                      placeholder="Ex: Frontale, Spéciale..."
+                      value={newTeamData.name}
+                      onChange={(e) => setNewTeamData({...newTeamData, name: e.target.value})}
+                      className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
+                      autoFocus
+                    />
+                  </div>
 
-              <div>
-                <label className={`${t.textSecondary} font-bold text-sm`}>PROPRIÉTAIRE</label>
-                <select 
-                  value={newTeamData.owner || ''}
-                  onChange={(e) => setNewTeamData({...newTeamData, owner: e.target.value})}
-                  className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
-                >
-                  <option value="">Choisir un joueur</option>
-                  {players.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
+                  <div>
+                    <label className={`${t.textSecondary} font-bold text-sm`}>PROPRIÉTAIRE</label>
+                    <select 
+                      value={newTeamData.owner || ''}
+                      onChange={(e) => setNewTeamData({...newTeamData, owner: e.target.value})}
+                      className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 ${t.inputFocus} outline-none`}
+                    >
+                      <option value="">Choisir un joueur</option>
+                      {players.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowNewTeamForm(false);
-                    setNewTeamData({ name: '', owner: null, pokemon: [] });
-                  }}
-                  className={`flex-1 ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} ${t.text} py-3 rounded-xl font-bold transition`}
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={() => {
-                    if (newTeamData.name.trim() && newTeamData.owner) {
-                      const owner = players.find(p => p.id === parseInt(newTeamData.owner));
-                      const newTeam = {
-                        id: Date.now(),
-                        name: newTeamData.name,
-                        owner: owner?.name,
-                        pokemon: [],
-                        format: '2v2',
-                      };
-                      setTeams([...teams, newTeam]);
-                      setShowNewTeamForm(false);
-                      setNewTeamData({ name: '', owner: null, pokemon: [] });
-                    } else {
-                      alert('Veuillez remplir tous les champs');
-                    }
-                  }}
-                  className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black hover:bg-orange-600 transition"
-                >
-                  Créer l'équipe
-                </button>
-              </div>
-            </div>
+                  <div>
+                    <label className={`${t.textSecondary} font-bold text-sm mb-3 block`}>FORMAT</label>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setNewTeamData({...newTeamData, format: '1v1'})}
+                        className={`flex-1 py-3 rounded-xl font-black transition ${
+                          newTeamData.format === '1v1'
+                            ? 'bg-orange-500 text-white'
+                            : `${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text}`
+                        }`}
+                      >
+                        1v1 (3 Pokémon)
+                      </button>
+                      <button
+                        onClick={() => setNewTeamData({...newTeamData, format: '2v2'})}
+                        className={`flex-1 py-3 rounded-xl font-black transition ${
+                          newTeamData.format === '2v2'
+                            ? 'bg-orange-500 text-white'
+                            : `${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text}`
+                        }`}
+                      >
+                        2v2 (4 Pokémon)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={`${t.textSecondary} font-bold text-sm`}>POKÉMON ({newTeamData.pokemon.length}/{newTeamData.format === '1v1' ? 3 : 4})</label>
+                    <div className="mt-2 space-y-2">
+                      {newTeamData.pokemon.map((poke) => (
+                        <div key={poke.id} className={`${t.bgSecondary} rounded-lg p-3 flex items-center justify-between border ${t.border}`}>
+                          <div className="flex items-center gap-3">
+                            <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-10 h-10 object-contain" />
+                            <span className={`font-bold ${t.text}`}>{poke.name}</span>
+                          </div>
+                          <button
+                            onClick={() => setNewTeamData({...newTeamData, pokemon: newTeamData.pokemon.filter(p => p.id !== poke.id)})}
+                            className="text-red-500 hover:text-red-600"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      ))}
+                      {newTeamData.pokemon.length < (newTeamData.format === '1v1' ? 3 : 4) && (
+                        <button
+                          onClick={() => {
+                            setTeamSearchStep('pokemon');
+                            setSearchTerm('');
+                            setSearchResults([]);
+                          }}
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-black transition"
+                        >
+                          + Ajouter un Pokémon
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowNewTeamForm(false);
+                        setNewTeamData({ name: '', owner: null, pokemon: [], format: '2v2' });
+                      }}
+                      className={`flex-1 ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} ${t.text} py-3 rounded-xl font-bold transition`}
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (newTeamData.name.trim() && newTeamData.owner && newTeamData.pokemon.length > 0) {
+                          const owner = players.find(p => p.id === parseInt(newTeamData.owner));
+                          const newTeam = {
+                            id: Date.now(),
+                            name: newTeamData.name,
+                            owner: owner?.name,
+                            pokemon: newTeamData.pokemon,
+                            format: newTeamData.format,
+                          };
+                          setTeams([...teams, newTeam]);
+                          setShowNewTeamForm(false);
+                          setNewTeamData({ name: '', owner: null, pokemon: [], format: '2v2' });
+                        } else {
+                          alert('Veuillez remplir tous les champs et ajouter au moins un Pokémon');
+                        }
+                      }}
+                      className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black hover:bg-orange-600 transition"
+                    >
+                      Créer l'équipe
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : teamSearchStep === 'pokemon' ? (
+              <>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className={`text-2xl font-black ${t.text}`}>Ajouter un Pokémon</h2>
+                  <button onClick={() => setTeamSearchStep('create')} className={`${t.textSecondary} hover:${t.text}`}>
+                    <ArrowLeft size={24} />
+                  </button>
+                </div>
+
+                <div className="relative mb-6">
+                  <Search className={`absolute left-4 top-3 ${t.textSecondary}`} size={20} />
+                  <input
+                    type="text"
+                    placeholder="Chercher un Pokémon..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      searchPokemon(e.target.value);
+                    }}
+                    className={`w-full border ${t.input} rounded-xl px-4 py-3 pl-12 ${t.inputFocus} outline-none`}
+                    autoFocus
+                  />
+                </div>
+
+                {searchLoading ? (
+                  <div className={`text-center ${t.textSecondary}`}>
+                    <Loader className="animate-spin mx-auto mb-2" />
+                    <p>Recherche en cours...</p>
+                  </div>
+                ) : searchTerm && searchResults.length === 0 ? (
+                  <div className={`${t.bgSecondary} rounded-2xl p-6 text-center border ${t.border} ${t.textSecondary}`}>
+                    Aucun résultat trouvé
+                  </div>
+                ) : searchTerm ? (
+                  <div className="space-y-2">
+                    {searchResults.map((poke) => (
+                      <button
+                        key={poke.pokeId}
+                        onClick={() => {
+                          const newPoke = {
+                            id: Date.now(),
+                            pokeId: poke.pokeId,
+                            name: poke.name,
+                            types: poke.types || [],
+                          };
+                          setNewTeamData({...newTeamData, pokemon: [...newTeamData.pokemon, newPoke]});
+                          setTeamSearchStep('create');
+                          setSearchTerm('');
+                        }}
+                        className={`w-full ${t.bgSecondary} rounded-2xl p-4 hover:shadow-md transition flex items-center gap-4 border ${t.border}`}
+                      >
+                        <img src={getPokemonImageUrl(poke.pokeId)} alt={poke.name} className="w-12 h-12 object-contain" />
+                        <div className="flex-1 text-left">
+                          <h3 className={`font-bold ${t.text}`}>{poke.name}</h3>
+                          <p className={`text-xs ${t.textSecondary}`}>#{poke.pokeId}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={`${t.bgSecondary} rounded-2xl p-6 text-center border ${t.border} ${t.textSecondary}`}>
+                    Commence à taper un nom...
+                  </div>
+                )}
+              </>
+            ) : null}
           </div>
         </div>
       )}
