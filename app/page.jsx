@@ -800,13 +800,34 @@ const PokemonBattleLogger = () => {
                       {/* Affichage Pokémon Joueur 1 */}
                       {battleSelectedPokemon.player1.length > 0 && (
                         <div className="space-y-2">
-                          {battleSelectedPokemon.player1.map(p => (
-                            <div key={p.id} className={`${t.bgPrimary} rounded-lg p-2 flex items-center justify-between border ${t.border}`}>
-                              <div className="flex items-center gap-2">
-                                <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-6 h-6 object-contain" />
-                                <span className={`font-bold text-sm ${t.text}`}>{p.name}</span>
+                          {battleSelectedPokemon.player1.map((p, idx) => (
+                            <div key={p.id} className={`${t.bgPrimary} rounded-lg p-3 flex items-center justify-between border ${p.eliminated ? 'border-red-500 opacity-60' : t.border}`}>
+                              <div className="flex items-center gap-2 flex-1">
+                                <input type="checkbox" checked={p.eliminated || false} onChange={() => {
+                                  const updated = [...battleSelectedPokemon.player1];
+                                  updated[idx] = {...updated[idx], eliminated: !updated[idx].eliminated};
+                                  setBattleSelectedPokemon({...battleSelectedPokemon, player1: updated});
+                                }} className="w-4 h-4 cursor-pointer" />
+                                <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className={`w-6 h-6 object-contain ${p.eliminated ? 'opacity-50' : ''}`} />
+                                <span className={`font-bold text-sm ${t.text} ${p.eliminated ? 'line-through opacity-50' : ''}`}>{p.name}</span>
                               </div>
-                              <button onClick={() => setBattleSelectedPokemon({...battleSelectedPokemon, player1: battleSelectedPokemon.player1.filter(pk => pk.id !== p.id)})} className="text-red-500 hover:text-red-600 font-bold text-sm">×</button>
+                              <div className="flex gap-1">
+                                <button onClick={() => {
+                                  if (idx > 0) {
+                                    const updated = [...battleSelectedPokemon.player1];
+                                    [updated[idx], updated[idx-1]] = [updated[idx-1], updated[idx]];
+                                    setBattleSelectedPokemon({...battleSelectedPokemon, player1: updated});
+                                  }
+                                }} className={`text-sm font-bold ${idx === 0 ? 'opacity-30 cursor-not-allowed' : 'text-blue-500 hover:text-blue-600'}`}>↑</button>
+                                <button onClick={() => {
+                                  if (idx < battleSelectedPokemon.player1.length - 1) {
+                                    const updated = [...battleSelectedPokemon.player1];
+                                    [updated[idx], updated[idx+1]] = [updated[idx+1], updated[idx]];
+                                    setBattleSelectedPokemon({...battleSelectedPokemon, player1: updated});
+                                  }
+                                }} className={`text-sm font-bold ${idx === battleSelectedPokemon.player1.length - 1 ? 'opacity-30 cursor-not-allowed' : 'text-blue-500 hover:text-blue-600'}`}>↓</button>
+                                <button onClick={() => setBattleSelectedPokemon({...battleSelectedPokemon, player1: battleSelectedPokemon.player1.filter(pk => pk.id !== p.id)})} className="text-red-500 hover:text-red-600 font-bold text-sm">×</button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -832,13 +853,34 @@ const PokemonBattleLogger = () => {
                       {/* Affichage Pokémon Joueur 2 */}
                       {battleSelectedPokemon.player2.length > 0 && (
                         <div className="space-y-2">
-                          {battleSelectedPokemon.player2.map(p => (
-                            <div key={p.id} className={`${t.bgPrimary} rounded-lg p-2 flex items-center justify-between border ${t.border}`}>
-                              <div className="flex items-center gap-2">
-                                <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className="w-6 h-6 object-contain" />
-                                <span className={`font-bold text-sm ${t.text}`}>{p.name}</span>
+                          {battleSelectedPokemon.player2.map((p, idx) => (
+                            <div key={p.id} className={`${t.bgPrimary} rounded-lg p-3 flex items-center justify-between border ${p.eliminated ? 'border-red-500 opacity-60' : t.border}`}>
+                              <div className="flex items-center gap-2 flex-1">
+                                <input type="checkbox" checked={p.eliminated || false} onChange={() => {
+                                  const updated = [...battleSelectedPokemon.player2];
+                                  updated[idx] = {...updated[idx], eliminated: !updated[idx].eliminated};
+                                  setBattleSelectedPokemon({...battleSelectedPokemon, player2: updated});
+                                }} className="w-4 h-4 cursor-pointer" />
+                                <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className={`w-6 h-6 object-contain ${p.eliminated ? 'opacity-50' : ''}`} />
+                                <span className={`font-bold text-sm ${t.text} ${p.eliminated ? 'line-through opacity-50' : ''}`}>{p.name}</span>
                               </div>
-                              <button onClick={() => setBattleSelectedPokemon({...battleSelectedPokemon, player2: battleSelectedPokemon.player2.filter(pk => pk.id !== p.id)})} className="text-red-500 hover:text-red-600 font-bold text-sm">×</button>
+                              <div className="flex gap-1">
+                                <button onClick={() => {
+                                  if (idx > 0) {
+                                    const updated = [...battleSelectedPokemon.player2];
+                                    [updated[idx], updated[idx-1]] = [updated[idx-1], updated[idx]];
+                                    setBattleSelectedPokemon({...battleSelectedPokemon, player2: updated});
+                                  }
+                                }} className={`text-sm font-bold ${idx === 0 ? 'opacity-30 cursor-not-allowed' : 'text-blue-500 hover:text-blue-600'}`}>↑</button>
+                                <button onClick={() => {
+                                  if (idx < battleSelectedPokemon.player2.length - 1) {
+                                    const updated = [...battleSelectedPokemon.player2];
+                                    [updated[idx], updated[idx+1]] = [updated[idx+1], updated[idx]];
+                                    setBattleSelectedPokemon({...battleSelectedPokemon, player2: updated});
+                                  }
+                                }} className={`text-sm font-bold ${idx === battleSelectedPokemon.player2.length - 1 ? 'opacity-30 cursor-not-allowed' : 'text-blue-500 hover:text-blue-600'}`}>↓</button>
+                                <button onClick={() => setBattleSelectedPokemon({...battleSelectedPokemon, player2: battleSelectedPokemon.player2.filter(pk => pk.id !== p.id)})} className="text-red-500 hover:text-red-600 font-bold text-sm">×</button>
+                              </div>
                             </div>
                           ))}
                         </div>
