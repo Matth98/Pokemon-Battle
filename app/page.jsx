@@ -735,39 +735,39 @@ const PokemonBattleLogger = () => {
 
       {/* Modal Nouveau Combat */}
       {showNewBattleForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col">
-          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col`}>
-            <div className="p-6 flex-1 overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex flex-col overflow-hidden">
+          <div className={`${t.bgPrimary} flex-1 overflow-y-auto flex flex-col overflow-x-hidden`}>
+            <div className="p-6 flex-1 overflow-y-auto w-full box-border">
               <h2 className={`text-2xl font-black ${t.text} mb-6`}>Nouveau combat</h2>
-              <div className="space-y-6">
+              <div className="space-y-6 w-full">
                 <div>
                   <label className={`${t.textSecondary} font-bold text-sm`}>FORMAT</label>
-                  <select value={newBattleData.format} onChange={(e) => setNewBattleData({...newBattleData, format: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border`}>
+                  <select value={newBattleData.format} onChange={(e) => setNewBattleData({...newBattleData, format: e.target.value})} className={`w-full max-w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border overflow-hidden`}>
                     <option value="1v1">1v1</option>
                     <option value="2v2">2v2</option>
                   </select>
                 </div>
                 <div>
                   <label className={`${t.textSecondary} font-bold text-sm`}>DATE</label>
-                  <input type="date" value={newBattleData.date} onChange={(e) => setNewBattleData({...newBattleData, date: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border`} />
+                  <input type="date" value={newBattleData.date} onChange={(e) => setNewBattleData({...newBattleData, date: e.target.value})} className={`w-full max-w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border overflow-hidden`} />
                 </div>
                 <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
                   <label className="text-orange-500 font-bold text-sm">JOUEUR 1</label>
-                  <select value={newBattleData.player1 || ''} onChange={(e) => setNewBattleData({...newBattleData, player1: e.target.value ? parseInt(e.target.value) : null})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2 box-border`}>
+                  <select value={newBattleData.player1 || ''} onChange={(e) => setNewBattleData({...newBattleData, player1: e.target.value ? parseInt(e.target.value) : null})} className={`w-full max-w-full border ${t.input} rounded-lg px-4 py-3 mt-2 box-border overflow-hidden`}>
                     <option value="">Choisir</option>
                     {players.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
                   </select>
                 </div>
                 <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
                   <label className="text-red-500 font-bold text-sm">JOUEUR 2</label>
-                  <select value={newBattleData.player2 || ''} onChange={(e) => setNewBattleData({...newBattleData, player2: e.target.value ? parseInt(e.target.value) : null})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2 box-border`}>
+                  <select value={newBattleData.player2 || ''} onChange={(e) => setNewBattleData({...newBattleData, player2: e.target.value ? parseInt(e.target.value) : null})} className={`w-full max-w-full border ${t.input} rounded-lg px-4 py-3 mt-2 box-border overflow-hidden`}>
                     <option value="">Choisir</option>
                     {players.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
                   </select>
                 </div>
                 <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
                   <label className={`${t.textSecondary} font-bold text-sm`}>GAGNANT</label>
-                  <select value={newBattleData.winner || ''} onChange={(e) => setNewBattleData({...newBattleData, winner: e.target.value})} className={`w-full border ${t.input} rounded-lg px-4 py-3 mt-2 box-border`}>
+                  <select value={newBattleData.winner || ''} onChange={(e) => setNewBattleData({...newBattleData, winner: e.target.value})} className={`w-full max-w-full border ${t.input} rounded-lg px-4 py-3 mt-2 box-border overflow-hidden`}>
                     <option value="">Choisir</option>
                     {newBattleData.player1 && (<option value="player1">{players.find(p => p.id === newBattleData.player1)?.name}</option>)}
                     {newBattleData.player2 && (<option value="player2">{players.find(p => p.id === newBattleData.player2)?.name}</option>)}
@@ -775,7 +775,7 @@ const PokemonBattleLogger = () => {
                 </div>
                 <div>
                   <label className={`${t.textSecondary} font-bold text-sm`}>NOTES</label>
-                  <textarea placeholder="..." value={newBattleData.notes} onChange={(e) => setNewBattleData({...newBattleData, notes: e.target.value})} className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border`} rows="3" />
+                  <textarea placeholder="..." value={newBattleData.notes} onChange={(e) => setNewBattleData({...newBattleData, notes: e.target.value})} className={`w-full max-w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border overflow-hidden`} rows="3" />
                 </div>
               </div>
             </div>
