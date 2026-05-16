@@ -109,9 +109,10 @@ const PokemonBattleLogger = () => {
     }
 
     const owner = players.find(p => p.id === parseInt(newTeamData.owner));
-    setTeams([...teams, { id: Date.now(), ...newTeamData, owner: owner?.name || 'Inconnu', pokemon: [] }]);
-    setNewTeamData({ name: '', owner: null, format: '2v2' });
+    setTeams([...teams, { id: Date.now(), ...newTeamData, owner: owner?.name || 'Inconnu' }]);
+    setNewTeamData({ name: '', owner: null, format: '2v2', pokemon: [] });
     setShowNewTeamForm(false);
+    setTeamSearchStep('create');
   };
 
   const getPokemonImageUrl = (id) => {
