@@ -149,16 +149,28 @@ const PokemonBattleLogger = () => {
     localStorage.setItem('pb_theme', isDark ? 'dark' : 'light');
   }, [players, battles, teams, isDark]);
 
+  // Mettre à jour le gagnant automatiquement
+  useEffect(() => {
+    const autoWinner = calculateWinner();
+    if (autoWinner && newBattleData.winner !== autoWinner) {
+      setNewBattleData({...newBattleData, winner: autoWinner});
+    }
+  }, [battleSelectedPokemon]);
+
   // FUNCTIONS
   const addPlayer = (name) => {
     setPlayers([...players, { id: Date.now(), name, stats: { wins: 0, losses: 0 } }]);
   };
 
+  const calculateWinner = () => {
+    const p1Eliminated = battleSelectedPokemon.player1.filter(p => p.eliminated).length;
+    const p2Eliminated = battleSelectedPokemon.player2.filter(p => p.eliminated).length;
+    
+    if (p1Eliminated === p2Eliminated) return null;
+    return p1Eliminated > p2Eliminated ? 'player2' : 'player1';
+  };
+
   const recordBattle = () => {
-    if (!newBattleData.player1 || !newBattleData.player2 || !newBattleData.winner) {
-      alert('Remplissez tous les champs');
-      return;
-    }
 
     // Créer le combat avec les pokémon et leurs statuts
     const battleWithPokemon = {
@@ -167,6 +179,11 @@ const PokemonBattleLogger = () => {
       team1: battleSelectedPokemon.player1,
       team2: battleSelectedPokemon.player2
     };
+
+    if (!newBattleData.player1 || !newBattleData.player2 || !newBattleData.winner) {
+      alert('Remplissez tous les champs');
+      return;
+    }
 
     setBattles([...battles, battleWithPokemon]);
 
@@ -847,20 +864,11 @@ const PokemonBattleLogger = () => {
               <h2 className={`text-2xl font-black ${t.text} mb-6`}>Nouveau combat</h2>
               <div className="space-y-6 w-full">
                 <div>
-                  <label className={`${t.textSecondary} font-bold text-sm`}>FORMAT</label>
-                  <select value={newBattleData.format} onChange={(e) => setNewBattleData({...newBattleData, format: e.target.value})} className={`w-full max-w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border overflow-hidden`}>
-                    <option value="1v1">1v1</option>
-                    <option value="2v2">2v2</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={`${t.textSecondary} font-bold text-sm`}>DATE</label>
-                  <input 
-                    type="date" 
-                    value={newBattleData.date} 
-                    onChange={(e) => setNewBattleData({...newBattleData, date: e.target.value})} 
-                    className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border text-left`}
-                  />
+                  <label className={`${t.textSecondary} font-bold text-sm mb-3 block`}>FORMAT</label>
+                  <div className="flex gap-3">
+                    <button onClick={() => setNewBattleData({...newBattleData, format: '1v1'})} className={`flex-1 py-3 rounded-xl font-black ${newBattleData.format === '1v1' ? 'bg-orange-500 text-white' : `${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text}`}`}>1v1</button>
+                    <button onClick={() => setNewBattleData({...newBattleData, format: '2v2'})} className={`flex-1 py-3 rounded-xl font-black ${newBattleData.format === '2v2' ? 'bg-orange-500 text-white' : `${isDark ? 'bg-gray-700' : 'bg-gray-200'} ${t.text}`}`}>2v2</button>
+                  </div>
                 </div>
                 <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
                   <label className="text-orange-500 font-bold text-sm">JOUEUR 1</label>
@@ -870,7 +878,7 @@ const PokemonBattleLogger = () => {
                   </select>
                   
                   {newBattleData.player1 && (
-                    <div className="mt-3 pt-3 border-t border-gray-600">
+                    <div className="mt-3 pt-3">
                       <p className={`text-xs font-bold ${t.textSecondary} mb-2`}>Ajouter Pokémon</p>
                       <div className="flex gap-2 mb-3">
                         <button onClick={() => setBattlePokemonSelecting('player1_team')} className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm transition">🛡️ Équipe</button>
@@ -930,7 +938,7 @@ const PokemonBattleLogger = () => {
                   </select>
                   
                   {newBattleData.player2 && (
-                    <div className="mt-3 pt-3 border-t border-gray-600">
+                    <div className="mt-3 pt-3">
                       <p className={`text-xs font-bold ${t.textSecondary} mb-2`}>Ajouter Pokémon</p>
                       <div className="flex gap-2 mb-3">
                         <button onClick={() => setBattlePokemonSelecting('player2_team')} className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm transition">🛡️ Équipe</button>
@@ -982,8 +990,18 @@ const PokemonBattleLogger = () => {
                     </div>
                   )}
                 </div>
+                <div>
+                  <label className={`${t.textSecondary} font-bold text-sm`}>DATE</label>
+                  <input 
+                    type="date" 
+                    value={newBattleData.date} 
+                    onChange={(e) => setNewBattleData({...newBattleData, date: e.target.value})} 
+                    className={`w-full border ${t.input} rounded-xl px-4 py-3 mt-2 box-border text-left`}
+                  />
+                </div>
                 <div className={`${isDark ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 border ${t.border}`}>
                   <label className={`${t.textSecondary} font-bold text-sm`}>GAGNANT</label>
+                  {calculateWinner() && <p className="text-orange-500 text-xs font-bold mt-1">Déterminé automatiquement ✓</p>}
                   <select value={newBattleData.winner || ''} onChange={(e) => setNewBattleData({...newBattleData, winner: e.target.value})} className={`w-full max-w-full border ${t.input} rounded-lg px-4 py-3 mt-2 box-border overflow-hidden`}>
                     <option value="">Choisir</option>
                     {newBattleData.player1 && (<option value="player1">{players.find(p => p.id === newBattleData.player1)?.name}</option>)}
