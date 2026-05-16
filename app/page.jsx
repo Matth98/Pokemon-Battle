@@ -427,7 +427,8 @@ const PokemonBattleLogger = () => {
                   type="date" 
                   value={newBattleData.date}
                   onChange={(e) => setNewBattleData({...newBattleData, date: e.target.value})}
-                  className={`w-full border ${t.input} rounded-xl px-3 py-2 mt-2 ${t.inputFocus} outline-none text-sm`} 
+                  className={`w-full border ${t.input} rounded-xl px-2 py-1 mt-2 ${t.inputFocus} outline-none text-xs`} 
+                  style={{fontSize: '14px'}}
                 />
               </div>
 
