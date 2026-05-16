@@ -48,6 +48,7 @@ const PokemonBattleLogger = () => {
   const [teamSearchStep, setTeamSearchStep] = useState('create'); // 'create' ou 'pokemon'
   const [addingPokemonToTeam, setAddingPokemonToTeam] = useState(null); // teamId ou null
   const [addingPokemonToPlayer, setAddingPokemonToPlayer] = useState(null); // playerId ou null
+  const [pokemonNamesCache, setPokemonNamesCache] = useState({}); // Cache des noms français
 
   // LOAD/SAVE
   useEffect(() => {
@@ -60,7 +61,33 @@ const PokemonBattleLogger = () => {
     if (savedBattles) setBattles(JSON.parse(savedBattles));
     if (savedTeams) setTeams(JSON.parse(savedTeams));
     if (savedTheme) setIsDark(savedTheme === 'dark');
+
+    // Charger les noms français des Pokémon
+    loadPokemonNames();
   }, []);
+
+  const loadPokemonNames = async () => {
+    try {
+      const cache = {};
+      for (let i = 1; i <= 1025; i++) {
+        try {
+          const response = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${i}/`);
+          const data = await response.json();
+          const frenchName = data.names?.find(n => n.language.name === 'fr')?.name || data.name;
+          cache[i] = { fr: frenchName, en: data.name };
+        } catch (error) {
+          // Skip si erreur
+        }
+      }
+      setPokemonNamesCache(cache);
+      localStorage.setItem('pb_pokemon_names', JSON.stringify(cache));
+    } catch (error) {
+      console.error('Erreur chargement noms:', error);
+      // Essayer de charger depuis le cache local
+      const cached = localStorage.getItem('pb_pokemon_names');
+      if (cached) setPokemonNamesCache(JSON.parse(cached));
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('pb_players', JSON.stringify(players));
@@ -127,17 +154,19 @@ const PokemonBattleLogger = () => {
 
     setSearchLoading(true);
     try {
-      const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
-      const data = await response.json();
-      
       const results = [];
-      for (let i = 0; i < data.results.length && results.length < 20; i++) {
-        const poke = data.results[i];
-        const pokeId = i + 1;
-        const frenchName = poke.name.charAt(0).toUpperCase() + poke.name.slice(1);
+      
+      // Chercher dans le cache
+      for (const [pokeId, names] of Object.entries(pokemonNamesCache)) {
+        if (results.length >= 20) break;
         
-        if (frenchName.toLowerCase().includes(query.toLowerCase()) || poke.name.toLowerCase().includes(query.toLowerCase())) {
-          results.push({ pokeId, name: frenchName });
+        if (names.fr.toLowerCase().includes(query.toLowerCase()) || 
+            names.en.toLowerCase().includes(query.toLowerCase())) {
+          results.push({ 
+            pokeId: parseInt(pokeId), 
+            name: names.fr,
+            englishName: names.en 
+          });
         }
       }
       
