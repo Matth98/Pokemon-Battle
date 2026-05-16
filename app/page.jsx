@@ -137,7 +137,24 @@ const PokemonBattleLogger = () => {
     }
 
     const owner = players.find(p => p.id === parseInt(newTeamData.owner));
-    setTeams([...teams, { id: Date.now(), ...newTeamData, owner: owner?.name || 'Inconnu', ownerId: parseInt(newTeamData.owner) }]);
+    const ownerId = parseInt(newTeamData.owner);
+
+    // Ajouter les Pokémon NOUVEAUX à la liste perso du joueur
+    const newPlayers = players.map(p => {
+      if (p.id === ownerId) {
+        const currentPokemonIds = p.pokemon?.map(pk => pk.pokeId) || [];
+        const newPokemon = newTeamData.pokemon.filter(tp => !currentPokemonIds.includes(tp.pokeId));
+        
+        return {
+          ...p,
+          pokemon: [...(p.pokemon || []), ...newPokemon.map(pk => ({ ...pk, id: Date.now() + Math.random() }))]
+        };
+      }
+      return p;
+    });
+
+    setPlayers(newPlayers);
+    setTeams([...teams, { id: Date.now(), ...newTeamData, owner: owner?.name || 'Inconnu', ownerId: ownerId }]);
     setNewTeamData({ name: '', owner: null, format: '2v2', pokemon: [] });
     setShowNewTeamForm(false);
     setTeamSearchStep('create');
@@ -226,6 +243,8 @@ const PokemonBattleLogger = () => {
   };
 
   const addPokemonToTeam = (teamId, pokemon, shouldAddToPlayer = true) => {
+    const team = teams.find(t => t.id === teamId);
+    
     const newTeams = teams.map(t => {
       if (t.id === teamId) {
         return {
@@ -239,15 +258,15 @@ const PokemonBattleLogger = () => {
     setSelectedTeam(newTeams.find(t => t.id === teamId));
 
     // Ajouter aussi à la liste perso du joueur si c'est un nouveau Pokémon
-    if (shouldAddToPlayer) {
-      const team = newTeams.find(t => t.id === teamId);
-      if (team) {
-        const player = players.find(p => p.id === parseInt(team.ownerId) || p.id === team.ownerId);
-        if (player) {
-          const alreadyHas = player.pokemon?.some(pk => pk.pokeId === pokemon.pokeId);
-          if (!alreadyHas) {
-            addPokemonToPlayer(player.id, pokemon);
-          }
+    if (shouldAddToPlayer && team) {
+      const ownerId = team.ownerId || team.owner;
+      const player = players.find(p => p.id === parseInt(ownerId) || p.id === ownerId);
+      
+      if (player) {
+        const alreadyHas = player.pokemon?.some(pk => pk.pokeId === pokemon.pokeId);
+        if (!alreadyHas) {
+          console.log('Ajout du Pokémon à la liste perso:', pokemon.name, 'pour', player.name);
+          addPokemonToPlayer(player.id, pokemon);
         }
       }
     }
