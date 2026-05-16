@@ -162,7 +162,7 @@ const PokemonBattleLogger = () => {
 
     setBattles([...battles, { id: Date.now(), ...newBattleData }]);
 
-    // Ajouter les pokémon sélectionnés à la liste perso des joueurs
+    // Ajouter les pokémon sélectionnés à la liste perso des joueurs (sans doublon)
     let updatedPlayers = players.map(p => {
       let newPokemon = [];
       
@@ -174,12 +174,17 @@ const PokemonBattleLogger = () => {
       
       if (newPokemon.length > 0) {
         const currentPokemonIds = p.pokemon?.map(pk => pk.pokeId) || [];
-        const pokemonToAdd = newPokemon.filter(np => !currentPokemonIds.includes(np.pokeId)).map(np => ({
-          id: Date.now() + Math.random(),
-          pokeId: np.pokeId,
-          name: np.name,
-          level: 50
-        }));
+        // Dédupliquer: ne pas ajouter les pokémon déjà présents
+        const pokemonToAdd = newPokemon
+          .filter(np => !currentPokemonIds.includes(np.pokeId))
+          // Dédupliquer aussi dans newPokemon lui-même (au cas où le même pokémon est dans plusieurs équipes)
+          .filter((np, idx, arr) => arr.findIndex(p => p.pokeId === np.pokeId) === idx)
+          .map(np => ({
+            id: Date.now() + Math.random(),
+            pokeId: np.pokeId,
+            name: np.name,
+            level: 50
+          }));
         
         return {
           ...p,
