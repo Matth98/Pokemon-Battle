@@ -59,7 +59,6 @@ const PokemonBattleLogger = () => {
 
   const [battlePokemonSelecting, setBattlePokemonSelecting] = useState(null); // 'player1' ou 'player2'
   const [battleSelectedPokemon, setBattleSelectedPokemon] = useState({ player1: [], player2: [] });
-  const [swipeState, setSwipeState] = useState({ pokemonId: null, startX: 0, currentX: 0 });
 
   const [newTeamData, setNewTeamData] = useState({
     name: '',
@@ -801,67 +800,43 @@ const PokemonBattleLogger = () => {
                       {/* Affichage Pokémon Joueur 1 */}
                       {battleSelectedPokemon.player1.length > 0 && (
                         <div className="space-y-2">
-                          {battleSelectedPokemon.player1.map((p, idx) => {
-                            const swipeOffset = swipeState.pokemonId === p.id ? swipeState.currentX - swipeState.startX : 0;
-                            const swipeThreshold = -50;
-                            const isSwipedEnough = swipeOffset < swipeThreshold;
-                            
-                            return (
-                              <div 
-                                key={p.id} 
-                                className="relative overflow-hidden rounded-lg"
-                                onTouchStart={(e) => setSwipeState({ pokemonId: p.id, startX: e.touches[0].clientX, currentX: e.touches[0].clientX })}
-                                onTouchMove={(e) => {
-                                  if (swipeState.pokemonId === p.id) {
-                                    setSwipeState({...swipeState, currentX: e.touches[0].clientX});
-                                  }
-                                }}
-                                onTouchEnd={() => {
-                                  if (isSwipedEnough) {
-                                    setBattleSelectedPokemon({...battleSelectedPokemon, player1: battleSelectedPokemon.player1.filter(pk => pk.id !== p.id)});
-                                  }
-                                  setSwipeState({ pokemonId: null, startX: 0, currentX: 0 });
-                                }}
-                              >
-                                {/* Fond rouge de suppression */}
-                                <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-4 rounded-lg">
-                                  <span className="text-white font-bold">🗑️ Supprimer</span>
-                                </div>
-                                
-                                {/* Contenu pokémon */}
-                                <div 
-                                  style={{ transform: `translateX(${Math.min(swipeOffset, 0)}px)` }}
-                                  className={`${t.bgPrimary} rounded-lg p-3 flex items-center justify-between border ${p.eliminated ? 'border-red-500 opacity-60' : t.border} transition-transform duration-50`}
-                                >
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <input type="checkbox" checked={p.eliminated || false} onChange={() => {
-                                      const updated = [...battleSelectedPokemon.player1];
-                                      updated[idx] = {...updated[idx], eliminated: !updated[idx].eliminated};
-                                      setBattleSelectedPokemon({...battleSelectedPokemon, player1: updated});
-                                    }} className="w-4 h-4 cursor-pointer" />
-                                    <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className={`w-6 h-6 object-contain ${p.eliminated ? 'opacity-50' : ''}`} />
-                                    <span className={`font-bold text-sm ${t.text} ${p.eliminated ? 'line-through opacity-50' : ''}`}>{p.name}</span>
-                                  </div>
-                                  <div className="flex gap-1">
-                                    <button onClick={() => {
-                                      if (idx > 0) {
-                                        const updated = [...battleSelectedPokemon.player1];
-                                        [updated[idx], updated[idx-1]] = [updated[idx-1], updated[idx]];
-                                        setBattleSelectedPokemon({...battleSelectedPokemon, player1: updated});
-                                      }
-                                    }} className={`text-sm font-bold ${idx === 0 ? 'opacity-30 cursor-not-allowed' : 'text-blue-500 hover:text-blue-600'}`}>↑</button>
-                                    <button onClick={() => {
-                                      if (idx < battleSelectedPokemon.player1.length - 1) {
-                                        const updated = [...battleSelectedPokemon.player1];
-                                        [updated[idx], updated[idx+1]] = [updated[idx+1], updated[idx]];
-                                        setBattleSelectedPokemon({...battleSelectedPokemon, player1: updated});
-                                      }
-                                    }} className={`text-sm font-bold ${idx === battleSelectedPokemon.player1.length - 1 ? 'opacity-30 cursor-not-allowed' : 'text-blue-500 hover:text-blue-600'}`}>↓</button>
-                                  </div>
-                                </div>
+                          {battleSelectedPokemon.player1.map((p, idx) => (
+                            <div 
+                              key={p.id}
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.effectAllowed = 'move';
+                                e.dataTransfer.setData('text/plain', JSON.stringify({player: 'player1', index: idx}));
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = 'move';
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                                if (data.player === 'player1' && data.index !== idx) {
+                                  const updated = [...battleSelectedPokemon.player1];
+                                  const [draggedItem] = updated.splice(data.index, 1);
+                                  updated.splice(idx, 0, draggedItem);
+                                  setBattleSelectedPokemon({...battleSelectedPokemon, player1: updated});
+                                }
+                              }}
+                              className={`${t.bgPrimary} rounded-lg p-3 flex items-center justify-between border ${p.eliminated ? 'border-red-500 opacity-60' : t.border} cursor-move hover:shadow-md transition`}
+                            >
+                              <div className="flex items-center gap-2 flex-1">
+                                <span className="text-gray-400 text-lg">≡</span>
+                                <input type="checkbox" checked={p.eliminated || false} onChange={() => {
+                                  const updated = [...battleSelectedPokemon.player1];
+                                  updated[idx] = {...updated[idx], eliminated: !updated[idx].eliminated};
+                                  setBattleSelectedPokemon({...battleSelectedPokemon, player1: updated});
+                                }} className="w-4 h-4 cursor-pointer" />
+                                <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className={`w-6 h-6 object-contain ${p.eliminated ? 'opacity-50' : ''}`} />
+                                <span className={`font-bold text-sm ${t.text} ${p.eliminated ? 'line-through opacity-50' : ''}`}>{p.name}</span>
                               </div>
-                            );
-                          })}
+                              <button onClick={() => setBattleSelectedPokemon({...battleSelectedPokemon, player1: battleSelectedPokemon.player1.filter(pk => pk.id !== p.id)})} className="text-red-500 hover:text-red-600 font-bold text-sm">×</button>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -885,67 +860,43 @@ const PokemonBattleLogger = () => {
                       {/* Affichage Pokémon Joueur 2 */}
                       {battleSelectedPokemon.player2.length > 0 && (
                         <div className="space-y-2">
-                          {battleSelectedPokemon.player2.map((p, idx) => {
-                            const swipeOffset = swipeState.pokemonId === p.id ? swipeState.currentX - swipeState.startX : 0;
-                            const swipeThreshold = -50;
-                            const isSwipedEnough = swipeOffset < swipeThreshold;
-                            
-                            return (
-                              <div 
-                                key={p.id} 
-                                className="relative overflow-hidden rounded-lg"
-                                onTouchStart={(e) => setSwipeState({ pokemonId: p.id, startX: e.touches[0].clientX, currentX: e.touches[0].clientX })}
-                                onTouchMove={(e) => {
-                                  if (swipeState.pokemonId === p.id) {
-                                    setSwipeState({...swipeState, currentX: e.touches[0].clientX});
-                                  }
-                                }}
-                                onTouchEnd={() => {
-                                  if (isSwipedEnough) {
-                                    setBattleSelectedPokemon({...battleSelectedPokemon, player2: battleSelectedPokemon.player2.filter(pk => pk.id !== p.id)});
-                                  }
-                                  setSwipeState({ pokemonId: null, startX: 0, currentX: 0 });
-                                }}
-                              >
-                                {/* Fond rouge de suppression */}
-                                <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-4 rounded-lg">
-                                  <span className="text-white font-bold">🗑️ Supprimer</span>
-                                </div>
-                                
-                                {/* Contenu pokémon */}
-                                <div 
-                                  style={{ transform: `translateX(${Math.min(swipeOffset, 0)}px)` }}
-                                  className={`${t.bgPrimary} rounded-lg p-3 flex items-center justify-between border ${p.eliminated ? 'border-red-500 opacity-60' : t.border} transition-transform duration-50`}
-                                >
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <input type="checkbox" checked={p.eliminated || false} onChange={() => {
-                                      const updated = [...battleSelectedPokemon.player2];
-                                      updated[idx] = {...updated[idx], eliminated: !updated[idx].eliminated};
-                                      setBattleSelectedPokemon({...battleSelectedPokemon, player2: updated});
-                                    }} className="w-4 h-4 cursor-pointer" />
-                                    <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className={`w-6 h-6 object-contain ${p.eliminated ? 'opacity-50' : ''}`} />
-                                    <span className={`font-bold text-sm ${t.text} ${p.eliminated ? 'line-through opacity-50' : ''}`}>{p.name}</span>
-                                  </div>
-                                  <div className="flex gap-1">
-                                    <button onClick={() => {
-                                      if (idx > 0) {
-                                        const updated = [...battleSelectedPokemon.player2];
-                                        [updated[idx], updated[idx-1]] = [updated[idx-1], updated[idx]];
-                                        setBattleSelectedPokemon({...battleSelectedPokemon, player2: updated});
-                                      }
-                                    }} className={`text-sm font-bold ${idx === 0 ? 'opacity-30 cursor-not-allowed' : 'text-blue-500 hover:text-blue-600'}`}>↑</button>
-                                    <button onClick={() => {
-                                      if (idx < battleSelectedPokemon.player2.length - 1) {
-                                        const updated = [...battleSelectedPokemon.player2];
-                                        [updated[idx], updated[idx+1]] = [updated[idx+1], updated[idx]];
-                                        setBattleSelectedPokemon({...battleSelectedPokemon, player2: updated});
-                                      }
-                                    }} className={`text-sm font-bold ${idx === battleSelectedPokemon.player2.length - 1 ? 'opacity-30 cursor-not-allowed' : 'text-blue-500 hover:text-blue-600'}`}>↓</button>
-                                  </div>
-                                </div>
+                          {battleSelectedPokemon.player2.map((p, idx) => (
+                            <div 
+                              key={p.id}
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.effectAllowed = 'move';
+                                e.dataTransfer.setData('text/plain', JSON.stringify({player: 'player2', index: idx}));
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = 'move';
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                                if (data.player === 'player2' && data.index !== idx) {
+                                  const updated = [...battleSelectedPokemon.player2];
+                                  const [draggedItem] = updated.splice(data.index, 1);
+                                  updated.splice(idx, 0, draggedItem);
+                                  setBattleSelectedPokemon({...battleSelectedPokemon, player2: updated});
+                                }
+                              }}
+                              className={`${t.bgPrimary} rounded-lg p-3 flex items-center justify-between border ${p.eliminated ? 'border-red-500 opacity-60' : t.border} cursor-move hover:shadow-md transition`}
+                            >
+                              <div className="flex items-center gap-2 flex-1">
+                                <span className="text-gray-400 text-lg">≡</span>
+                                <input type="checkbox" checked={p.eliminated || false} onChange={() => {
+                                  const updated = [...battleSelectedPokemon.player2];
+                                  updated[idx] = {...updated[idx], eliminated: !updated[idx].eliminated};
+                                  setBattleSelectedPokemon({...battleSelectedPokemon, player2: updated});
+                                }} className="w-4 h-4 cursor-pointer" />
+                                <img src={getPokemonImageUrl(p.pokeId)} alt={p.name} className={`w-6 h-6 object-contain ${p.eliminated ? 'opacity-50' : ''}`} />
+                                <span className={`font-bold text-sm ${t.text} ${p.eliminated ? 'line-through opacity-50' : ''}`}>{p.name}</span>
                               </div>
-                            );
-                          })}
+                              <button onClick={() => setBattleSelectedPokemon({...battleSelectedPokemon, player2: battleSelectedPokemon.player2.filter(pk => pk.id !== p.id)})} className="text-red-500 hover:text-red-600 font-bold text-sm">×</button>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
