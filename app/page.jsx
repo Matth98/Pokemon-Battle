@@ -137,7 +137,7 @@ const PokemonBattleLogger = () => {
     }
 
     const owner = players.find(p => p.id === parseInt(newTeamData.owner));
-    setTeams([...teams, { id: Date.now(), ...newTeamData, owner: owner?.name || 'Inconnu' }]);
+    setTeams([...teams, { id: Date.now(), ...newTeamData, owner: owner?.name || 'Inconnu', ownerId: parseInt(newTeamData.owner) }]);
     setNewTeamData({ name: '', owner: null, format: '2v2', pokemon: [] });
     setShowNewTeamForm(false);
     setTeamSearchStep('create');
@@ -225,7 +225,7 @@ const PokemonBattleLogger = () => {
     setSelectedTeam(newTeams.find(t => t.id === teamId));
   };
 
-  const addPokemonToTeam = (teamId, pokemon) => {
+  const addPokemonToTeam = (teamId, pokemon, shouldAddToPlayer = true) => {
     const newTeams = teams.map(t => {
       if (t.id === teamId) {
         return {
@@ -237,6 +237,21 @@ const PokemonBattleLogger = () => {
     });
     setTeams(newTeams);
     setSelectedTeam(newTeams.find(t => t.id === teamId));
+
+    // Ajouter aussi à la liste perso du joueur si c'est un nouveau Pokémon
+    if (shouldAddToPlayer) {
+      const team = newTeams.find(t => t.id === teamId);
+      if (team) {
+        const player = players.find(p => p.id === parseInt(team.ownerId) || p.id === team.ownerId);
+        if (player) {
+          const alreadyHas = player.pokemon?.some(pk => pk.pokeId === pokemon.pokeId);
+          if (!alreadyHas) {
+            addPokemonToPlayer(player.id, pokemon);
+          }
+        }
+      }
+    }
+
     setAddingPokemonToTeam(null);
     setSearchTerm('');
     setSearchResults([]);
