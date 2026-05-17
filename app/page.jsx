@@ -174,9 +174,11 @@ const PokemonBattleLogger = () => {
   const recordBattle = () => {
 
     // Créer le combat avec les pokémon et leurs statuts
+    const now = new Date();
     const battleWithPokemon = {
       id: Date.now(),
       ...newBattleData,
+      timestamp: now.toISOString(), // Pour le tri (date + heure)
       team1: battleSelectedPokemon.player1,
       team2: battleSelectedPokemon.player2
     };
@@ -252,6 +254,7 @@ const PokemonBattleLogger = () => {
     const updatedBattle = {
       ...editingBattle,
       ...newBattleData,
+      timestamp: editingBattle.timestamp, // Garder le timestamp original
       team1: battleSelectedPokemon.player1,
       team2: battleSelectedPokemon.player2
     };
@@ -638,7 +641,12 @@ const PokemonBattleLogger = () => {
   };
 
   const renderBattles = () => {
-    const sortedBattles = [...battles].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sortedBattles = [...battles].sort((a, b) => {
+      // Trier par timestamp (date + heure) du plus récent au plus ancien
+      const timeA = new Date(a.timestamp || a.date).getTime();
+      const timeB = new Date(b.timestamp || b.date).getTime();
+      return timeB - timeA;
+    });
     
     return (
       <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
@@ -704,7 +712,7 @@ const PokemonBattleLogger = () => {
                     <div className="flex-1" onClick={() => { setSelectedBattle(b); setCurrentTab('battleDetail'); }}>
                       {/* Format Sticker */}
                       <div className="text-center mb-4">
-                        <span className="inline-block bg-orange-500 text-white px-4 py-1 rounded-full font-bold text-sm">{b.format}</span>
+                        <span className="inline-block bg-orange-500 bg-opacity-20 text-orange-500 px-3 py-1 rounded-full font-bold text-xs">{b.format}</span>
                       </div>
                       
                       {/* Joueurs et Score */}
