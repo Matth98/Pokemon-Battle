@@ -516,19 +516,61 @@ const PokemonBattleLogger = () => {
           {battles.length === 0 ? (
             <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border} text-center ${t.textSecondary}`}>Aucun combat</div>
           ) : (
-            battles.slice(-2).map(b => {
-              const p1 = players.find(p => p.id === b.player1);
-              const p2 = players.find(p => p.id === b.player2);
-              return (
-                <button key={b.id} onClick={() => { setSelectedBattle(b); setCurrentTab('battleDetail'); }} className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${t.border} mb-2 text-left hover:shadow-md transition`}>
-                  <p className="text-orange-500 text-sm font-bold">{b.format}</p>
-                  <div className="flex justify-between mt-2">
-                    <p className={`font-bold ${b.winner === 'player1' ? 'text-orange-500' : t.textSecondary}`}>{p1?.name}</p>
-                    <p className={`font-bold ${b.winner === 'player2' ? 'text-orange-500' : t.textSecondary}`}>{p2?.name}</p>
-                  </div>
-                </button>
-              );
-            })
+            [...battles]
+              .sort((a, b) => {
+                const timeA = new Date(a.timestamp || a.date).getTime();
+                const timeB = new Date(b.timestamp || b.date).getTime();
+                return timeB - timeA;
+              })
+              .slice(0, 3)
+              .map(b => {
+                const p1 = players.find(p => p.id === b.player1);
+                const p2 = players.find(p => p.id === b.player2);
+                const p1Eliminated = (b.team1 || []).filter(p => p.eliminated).length;
+                const p2Eliminated = (b.team2 || []).filter(p => p.eliminated).length;
+                
+                // Formater la date : Jour / Mois / Année
+                const dateObj = new Date(b.date + 'T00:00:00');
+                const jour = String(dateObj.getDate()).padStart(2, '0');
+                const mois = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const annee = dateObj.getFullYear();
+                const formattedDate = `${jour}/${mois}/${annee}`;
+                
+                return (
+                  <button key={b.id} onClick={() => { setSelectedBattle(b); setCurrentTab('battleDetail'); }} className={`w-full ${t.bgPrimary} rounded-2xl p-6 border ${t.border} mb-3 text-left hover:shadow-md transition`}>
+                    {/* Format Sticker */}
+                    <div className="text-center mb-4">
+                      <span className="inline-block bg-orange-500 bg-opacity-20 text-orange-500 px-3 py-1 rounded-full font-bold text-xs">{b.format}</span>
+                    </div>
+                    
+                    {/* Joueurs et Score */}
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      {/* Joueur 1 */}
+                      <div className="flex-1">
+                        <p className={`font-bold text-sm ${b.winner === 'player1' ? 'text-orange-500' : t.textSecondary}`}>{p1?.name}</p>
+                      </div>
+                      
+                      {/* Score au centre */}
+                      <div className="text-center flex-shrink-0">
+                        <p className="font-black text-2xl text-orange-500">{p2Eliminated} - {p1Eliminated}</p>
+                      </div>
+                      
+                      {/* Joueur 2 */}
+                      <div className="flex-1 text-right">
+                        <p className={`font-bold text-sm ${b.winner === 'player2' ? 'text-orange-500' : t.textSecondary}`}>{p2?.name}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Date avec icône calendrier */}
+                    <div className="text-center">
+                      <p className={`${t.textSecondary} text-xs flex items-center justify-center gap-2`}>
+                        <span>📅</span>
+                        <span>{formattedDate}</span>
+                      </p>
+                    </div>
+                  </button>
+                );
+              })
           )}
         </div>
       </div>
