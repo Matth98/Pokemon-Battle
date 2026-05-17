@@ -678,9 +678,16 @@ const PokemonBattleLogger = () => {
               const p1Eliminated = (b.team1 || []).filter(p => p.eliminated).length;
               const p2Eliminated = (b.team2 || []).filter(p => p.eliminated).length;
               
+              // Formater la date : Jour / Mois / Année
+              const dateObj = new Date(b.date + 'T00:00:00');
+              const jour = String(dateObj.getDate()).padStart(2, '0');
+              const mois = String(dateObj.getMonth() + 1).padStart(2, '0');
+              const annee = dateObj.getFullYear();
+              const formattedDate = `${jour}/${mois}/${annee}`;
+              
               return (
-                <div key={b.id} className={`w-full ${t.bgPrimary} rounded-2xl p-4 border ${selectedItems.includes(b.id) ? 'border-orange-500' : t.border} hover:shadow-md transition ${selectionMode === 'battles' ? 'cursor-pointer' : ''}`}>
-                  <div className="flex items-start justify-between gap-4">
+                <div key={b.id} className={`w-full ${t.bgPrimary} rounded-2xl p-6 border ${selectedItems.includes(b.id) ? 'border-orange-500' : t.border} hover:shadow-md transition ${selectionMode === 'battles' ? 'cursor-pointer' : ''}`}>
+                  <div className="flex items-start justify-start gap-4">
                     {selectionMode === 'battles' && (
                       <input 
                         type="checkbox" 
@@ -691,22 +698,40 @@ const PokemonBattleLogger = () => {
                             : [...selectedItems, b.id]
                           );
                         }}
-                        className="w-5 h-5 cursor-pointer mt-1"
+                        className="w-5 h-5 cursor-pointer mt-1 flex-shrink-0"
                       />
                     )}
-                    <div className="flex-1">
-                      <button onClick={() => { setSelectedBattle(b); setCurrentTab('battleDetail'); }} className="w-full text-left">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <p className="text-orange-500 text-sm font-bold">{b.format} • {b.date}</p>
-                            <div className="flex justify-between mt-2 gap-4">
-                              <p className={`font-bold ${b.winner === 'player1' ? 'text-orange-500' : t.textSecondary}`}>{p1?.name}</p>
-                              <p className={`font-black text-lg text-orange-500`}>{p2Eliminated} - {p1Eliminated}</p>
-                              <p className={`font-bold ${b.winner === 'player2' ? 'text-orange-500' : t.textSecondary}`}>{p2?.name}</p>
-                            </div>
-                          </div>
+                    <div className="flex-1" onClick={() => { setSelectedBattle(b); setCurrentTab('battleDetail'); }}>
+                      {/* Format Sticker */}
+                      <div className="text-center mb-4">
+                        <span className="inline-block bg-orange-500 text-white px-4 py-1 rounded-full font-bold text-sm">{b.format}</span>
+                      </div>
+                      
+                      {/* Joueurs et Score */}
+                      <div className="flex items-center justify-between gap-4 mb-4">
+                        {/* Joueur 1 */}
+                        <div className="flex-1">
+                          <p className={`font-bold text-sm ${b.winner === 'player1' ? 'text-orange-500' : t.textSecondary}`}>{p1?.name}</p>
                         </div>
-                      </button>
+                        
+                        {/* Score au centre */}
+                        <div className="text-center flex-shrink-0">
+                          <p className="font-black text-2xl text-orange-500">{p2Eliminated} - {p1Eliminated}</p>
+                        </div>
+                        
+                        {/* Joueur 2 */}
+                        <div className="flex-1 text-right">
+                          <p className={`font-bold text-sm ${b.winner === 'player2' ? 'text-orange-500' : t.textSecondary}`}>{p2?.name}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Date avec icône calendrier */}
+                      <div className="text-center">
+                        <p className={`${t.textSecondary} text-xs flex items-center justify-center gap-2`}>
+                          <span>📅</span>
+                          <span>{formattedDate}</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
