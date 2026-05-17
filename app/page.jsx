@@ -883,36 +883,34 @@ const PokemonBattleLogger = () => {
                   
                   {/* Score avec noms à côté */}
                   <div className="flex justify-between items-center gap-4">
-                    <p className={`font-black text-lg flex-1 ${selectedBattle.winner === 'player1' ? 'text-orange-500' : t.text}`}>{p1?.name}</p>
+                    <p className={`font-black text-lg ${selectedBattle.winner === 'player1' ? 'text-orange-500' : t.text}`}>{p1?.name}</p>
                     <p className="font-black text-3xl text-orange-500 flex-shrink-0">{p2Eliminated} - {p1Eliminated}</p>
-                    <p className={`font-black text-lg flex-1 text-right ${selectedBattle.winner === 'player2' ? 'text-orange-500' : t.text}`}>{p2?.name}</p>
+                    <p className={`font-black text-lg ${selectedBattle.winner === 'player2' ? 'text-orange-500' : t.text}`}>{p2?.name}</p>
                   </div>
                 </div>
                 
                 {/* Date avec picto */}
                 <div className="text-center mt-6">
-                  <p className={`${t.textSecondary} text-sm flex items-center justify-center gap-2`}>
-                    <span>📅</span>
-                    <span>{selectedBattle.date}</span>
-                  </p>
+                  {(() => {
+                    const dateObj = new Date(selectedBattle.date + 'T00:00:00');
+                    const jour = String(dateObj.getDate()).padStart(2, '0');
+                    const mois = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const annee = dateObj.getFullYear();
+                    const formattedDate = `${jour}/${mois}/${annee}`;
+                    
+                    return (
+                      <p className={`${t.textSecondary} text-sm flex items-center justify-center gap-2`}>
+                        <span>📅</span>
+                        <span>{formattedDate}</span>
+                      </p>
+                    );
+                  })()}
                 </div>
               </div>
             );
           })()}
         </div>
         <div className="px-6 mt-6 pb-32 space-y-4">
-          {/* Info Combat */}
-          <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border}`}>
-            <div className="flex justify-between mb-4">
-              <p className={`font-bold ${t.text}`}>{p1?.name}</p>
-              <p className={`${t.textSecondary}`}>vs</p>
-              <p className={`font-bold ${t.text}`}>{p2?.name}</p>
-            </div>
-            {selectedBattle.winner && <p className="text-orange-500 font-bold">🏆 {selectedBattle.winner === 'player1' ? p1?.name : p2?.name} gagné</p>}
-            {selectedBattle.notes && <p className={`${t.textSecondary} mt-4`}>{selectedBattle.notes}</p>}
-          </div>
-
-          {/* Pokémon Joueur 1 */}
           {selectedBattle.team1 && selectedBattle.team1.length > 0 && (
             <div className={`${t.bgPrimary} rounded-2xl p-4 border border-orange-500`}>
               <p className="text-orange-500 font-bold text-sm mb-3">{p1?.name} - {selectedBattle.team1.length} Pokémon</p>
@@ -945,6 +943,14 @@ const PokemonBattleLogger = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {selectedBattle.notes && (
+            <div className={`${t.bgPrimary} rounded-2xl p-6 border ${t.border}`}>
+              <p className={`font-bold ${t.text} mb-2`}>Notes</p>
+              <p className={`${t.textSecondary}`}>{selectedBattle.notes}</p>
             </div>
           )}
         </div>
