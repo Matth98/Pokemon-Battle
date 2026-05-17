@@ -851,7 +851,7 @@ const PokemonBattleLogger = () => {
     return (
       <div className={`min-h-screen bg-gradient-to-br ${t.bg}`}>
         <div className={`${t.headerBg} pt-8 pb-6 px-6 border-b ${t.headerBorder}`}>
-          <div className="flex justify-between items-start mb-4">
+          <div className="flex justify-between items-start mb-6">
             <button onClick={() => { setCurrentTab('battles'); setSelectedBattle(null); }} className="text-orange-500 font-bold">← Retour</button>
             <button onClick={() => {
               setEditingBattle(selectedBattle);
@@ -876,22 +876,27 @@ const PokemonBattleLogger = () => {
             const p2Eliminated = (selectedBattle.team2 || []).filter(p => p.eliminated).length;
             
             return (
-              <>
-                {/* Score centré en haut */}
-                <div className="text-center mb-4">
-                  <p className="font-black text-3xl text-orange-500">{p2Eliminated} - {p1Eliminated}</p>
-                </div>
-                
+              <div>
                 {/* Joueurs à gauche et droite */}
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-6">
                   <p className={`font-black text-lg ${selectedBattle.winner === 'player1' ? 'text-orange-500' : t.text}`}>{p1?.name}</p>
-                  <p className={`font-bold text-sm text-orange-500`}>{selectedBattle.format}</p>
                   <p className={`font-black text-lg ${selectedBattle.winner === 'player2' ? 'text-orange-500' : t.text}`}>{p2?.name}</p>
                 </div>
                 
-                {/* Date */}
-                <p className={`${t.textSecondary} text-center text-sm`}>{selectedBattle.date}</p>
-              </>
+                {/* Centre : Format sticker + Score */}
+                <div className="text-center space-y-3">
+                  <span className="inline-block bg-orange-500 bg-opacity-20 text-orange-500 px-3 py-1 rounded-full font-bold text-sm">{selectedBattle.format}</span>
+                  <p className="font-black text-3xl text-orange-500">{p2Eliminated} - {p1Eliminated}</p>
+                </div>
+                
+                {/* Date avec picto */}
+                <div className="text-center mt-6">
+                  <p className={`${t.textSecondary} text-sm flex items-center justify-center gap-2`}>
+                    <span>📅</span>
+                    <span>{selectedBattle.date}</span>
+                  </p>
+                </div>
+              </div>
             );
           })()}
         </div>
