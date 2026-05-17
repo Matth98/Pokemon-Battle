@@ -837,8 +837,30 @@ const PokemonBattleLogger = () => {
               setShowNewBattleForm(true);
             }} className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm">✏️ Modifier</button>
           </div>
-          <h1 className={`text-2xl font-black ${t.text}`}>{selectedBattle.format}</h1>
-          <p className={`${t.textSecondary}`}>{selectedBattle.date}</p>
+          
+          {(() => {
+            const p1Eliminated = (selectedBattle.team1 || []).filter(p => p.eliminated).length;
+            const p2Eliminated = (selectedBattle.team2 || []).filter(p => p.eliminated).length;
+            
+            return (
+              <>
+                {/* Score centré en haut */}
+                <div className="text-center mb-4">
+                  <p className="font-black text-3xl text-orange-500">{p2Eliminated} - {p1Eliminated}</p>
+                </div>
+                
+                {/* Joueurs à gauche et droite */}
+                <div className="flex justify-between items-center mb-4">
+                  <p className={`font-black text-lg ${selectedBattle.winner === 'player1' ? 'text-orange-500' : t.text}`}>{p1?.name}</p>
+                  <p className={`font-bold text-sm text-orange-500`}>{selectedBattle.format}</p>
+                  <p className={`font-black text-lg ${selectedBattle.winner === 'player2' ? 'text-orange-500' : t.text}`}>{p2?.name}</p>
+                </div>
+                
+                {/* Date */}
+                <p className={`${t.textSecondary} text-center text-sm`}>{selectedBattle.date}</p>
+              </>
+            );
+          })()}
         </div>
         <div className="px-6 mt-6 pb-32 space-y-4">
           {/* Info Combat */}
