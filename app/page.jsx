@@ -877,16 +877,16 @@ const PokemonBattleLogger = () => {
             
             return (
               <div>
-                {/* Joueurs à gauche et droite */}
-                <div className="flex justify-between items-center mb-6">
-                  <p className={`font-black text-lg ${selectedBattle.winner === 'player1' ? 'text-orange-500' : t.text}`}>{p1?.name}</p>
-                  <p className={`font-black text-lg ${selectedBattle.winner === 'player2' ? 'text-orange-500' : t.text}`}>{p2?.name}</p>
-                </div>
-                
-                {/* Centre : Format sticker + Score */}
-                <div className="text-center space-y-3">
+                {/* Centre : Format sticker + Score avec noms */}
+                <div className="text-center space-y-4">
                   <span className="inline-block bg-orange-500 bg-opacity-20 text-orange-500 px-3 py-1 rounded-full font-bold text-sm">{selectedBattle.format}</span>
-                  <p className="font-black text-3xl text-orange-500">{p2Eliminated} - {p1Eliminated}</p>
+                  
+                  {/* Score avec noms à côté */}
+                  <div className="flex justify-between items-center gap-4">
+                    <p className={`font-black text-lg flex-1 ${selectedBattle.winner === 'player1' ? 'text-orange-500' : t.text}`}>{p1?.name}</p>
+                    <p className="font-black text-3xl text-orange-500 flex-shrink-0">{p2Eliminated} - {p1Eliminated}</p>
+                    <p className={`font-black text-lg flex-1 text-right ${selectedBattle.winner === 'player2' ? 'text-orange-500' : t.text}`}>{p2?.name}</p>
+                  </div>
                 </div>
                 
                 {/* Date avec picto */}
