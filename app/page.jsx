@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Users, Plus, Zap, Shield, Moon, Sun, ArrowLeft } from 'lucide-react';
+import { Home, Users, Plus, Zap, Shield, Moon, Sun, ArrowLeft, ChevronRight } from 'lucide-react';
 
 // Charger Font Awesome
 if (typeof document !== 'undefined' && !document.querySelector('link[href*="font-awesome"]')) {
@@ -670,6 +670,7 @@ const PokemonBattleLogger = () => {
                 <h3 className={`font-black ${t.text}`}>{p.name}</h3>
                 <p className={`${t.textSecondary} text-sm`}>⚔️ {p.stats.wins + p.stats.losses} combats · 🏆 {p.stats.wins}V</p>
               </button>
+              {selectionMode !== 'players' && <ChevronRight size={20} className={`flex-shrink-0 ${t.textSecondary}`} />}
             </div>
           ))
         )}
@@ -1007,6 +1008,7 @@ const PokemonBattleLogger = () => {
                 <h3 className={`font-black ${t.text}`}>{team.name}</h3>
                 <p className={`${t.textSecondary} text-sm`}>{team.owner} · {team.format}</p>
               </button>
+              {selectionMode !== 'teams' && <ChevronRight size={20} className={`flex-shrink-0 ${t.textSecondary}`} />}
             </div>
           ))
         )}
