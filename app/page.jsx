@@ -259,6 +259,38 @@ const PokemonBattleLogger = () => {
       team2: battleSelectedPokemon.player2
     };
 
+    // Recalculer les stats des joueurs
+    // D'abord, annuler les stats de l'ancien combat
+    let updatedPlayers = players.map(p => {
+      const isOldWinner = (editingBattle.winner === 'player1' && p.id === editingBattle.player1) || 
+                          (editingBattle.winner === 'player2' && p.id === editingBattle.player2);
+      const isOldLoser = (editingBattle.winner === 'player1' && p.id === editingBattle.player2) || 
+                         (editingBattle.winner === 'player2' && p.id === editingBattle.player1);
+      
+      if (isOldWinner) {
+        return { ...p, stats: { wins: Math.max(0, p.stats.wins - 1), losses: p.stats.losses } };
+      } else if (isOldLoser) {
+        return { ...p, stats: { wins: p.stats.wins, losses: Math.max(0, p.stats.losses - 1) } };
+      }
+      return p;
+    });
+
+    // Puis, ajouter les stats du nouveau combat
+    updatedPlayers = updatedPlayers.map(p => {
+      const isNewWinner = (newBattleData.winner === 'player1' && p.id === newBattleData.player1) || 
+                          (newBattleData.winner === 'player2' && p.id === newBattleData.player2);
+      const isNewLoser = (newBattleData.winner === 'player1' && p.id === newBattleData.player2) || 
+                         (newBattleData.winner === 'player2' && p.id === newBattleData.player1);
+      
+      if (isNewWinner) {
+        return { ...p, stats: { wins: p.stats.wins + 1, losses: p.stats.losses } };
+      } else if (isNewLoser) {
+        return { ...p, stats: { wins: p.stats.wins, losses: p.stats.losses + 1 } };
+      }
+      return p;
+    });
+
+    setPlayers(updatedPlayers);
     setBattles(battles.map(b => b.id === editingBattle.id ? updatedBattle : b));
     setEditingBattle(null);
     setNewBattleData({ format: '1v1', player1: null, player2: null, date: new Date().toISOString().split('T')[0], notes: '', winner: null });
